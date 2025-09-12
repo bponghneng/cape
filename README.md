@@ -4,7 +4,7 @@
 
 CAPE started as an extensive conversation with Claude Code about developing multi-agent workflows for complex brownfield codebases. Claude Code suggested the backronym name, which is laughably overblown for my actual intentions—but as someone who counts himself as attitudinally Generation X, I kept the name out of amusement at the irony I detected in this corporate-speak backronym.
 
-*A comprehensive development methodology for complex feature implementation with agent coordination and human oversight* Despite the highly over-engineered process language, I've found the methodology and workflow documents genuinely handy as context when working with Claude Code to build agents and commands.
+*A comprehensive development methodology for complex feature implementation with agent coordination and human oversight.* Despite the highly over-engineered process language, I've found the methodology and workflow documents genuinely handy as context when working with Claude Code to build agents and commands.
 
 The repo has evolved sensibly to satisfy smaller-scale ambitions: a collection of subagent and command templates I can source for my AI coder tools. CAPE bridges the gap between high-level work items and detailed technical implementation through strategic planning, specialized agent coordination, and human checkpoints that prevent over-engineering while leveraging agent expertise. As Claude says.
 
