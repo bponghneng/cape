@@ -20,3 +20,9 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# AI Coder files
+.claude/
+ai_docs/
+CLAUDE.md
+WARP.md
