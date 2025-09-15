@@ -1,35 +1,43 @@
 ---
-allowed-tools: Bash(tree), mcp__serena__*
-description: Command to prime Claude Code with core knowledge
+description: Read codebase context and build foundational knowledge
+tools: Task
 ---
 
-# /prime - Establish Workflow Rules for Implementing a Spec
+# /prime - Build Base Knowledge for AI Coders
 
-## Usage
-```
-/prime
-```
+Use the **general-purpose** agent to execute the `Discover`, `Analyze`, and
+`Synthesize` sections.
 
-# Prime Context for Claude Code
+## Task Instructions for Subagent
 
-Use serena to activate the project
+Execute comprehensive codebase analysis with the following sections:
 
-Use the command `tree` to get an understanding of the project structure.
+### Discover
 
-Read key files in the [list of directories] directories.
+1. Run `git ls-files` to see all tracked files
+2. List project root directory structure with `LS`
+3. Find and read key configuration files (package.json, requirements.txt, etc.)
+4. Locate README.md and documentation files
 
-Read any additional files that are important to understand the project, such as:
-[list of additional files]
+### Analyze
 
-## Key Principles
+1. Read README.md and main documentation
+2. Search for project entry points and main modules
+3. Identify technology stack and dependencies
+4. Find agents configuration files and workflow documentation
+5. Search for coding standards, conventions, and patterns
 
-Keep in mind that this app is intended for a startup and not an enterprise. In all cases, implementations should be lean and minimal while keeping with best practices.
+### Synthesize
 
-## Output
+Create comprehensive understanding of:
 
-Explain back to me:
-- Project structure
-- Project purpose and goals
-- Key files and their purposes
-- Any important dependencies
-- Any important configuration files
+- Project architecture and structure
+- Technology stack and dependencies
+- Development workflow and standards
+- Key components and their relationships
+
+## Report Back
+
+The subagent should provide a complete summary of project structure, technology stack,
+workflow rules, and development patterns to establish foundational knowledge for
+effective coding assistance.
