@@ -23,6 +23,10 @@ temp/
 
 # AI Coder files
 .claude/
-ai_docs/
+.windsurf/
 CLAUDE.md
 WARP.md
+
+# Secret files
+.secret/
+.env
