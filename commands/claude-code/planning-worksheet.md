@@ -1,18 +1,27 @@
 ---
 argument-hint: [additional-notes...]
 description: Generate a planning worksheet from the current chat context using the planning-worksheet.md template
+allowed-tools: Read
+thinking: true
 ---
 
-# Context
+## Context
 
-- Current Conversation: Use the active chat context as the primary source of truth (no external file references).
-- Additional Notes (from args): "$ARGUMENTS"
-- Template (use exactly this structure when producing the final output; do not include this Template section in your response):
+- Current conversation: Use the active chat context as the primary source of truth (no external file references).
+- Additional notes (from args): "$ARGUMENTS"
+
+## Project Context
+
+@CLAUDE.md
+
+## Template
+
+Use exactly these two structures when producing the final output; do not include this Template section in your response:
+
+Template A — What and Why
 
 ```markdown
-# <TICKET_ID>: <Plan Title>
-
-<!-- Purpose: Abstract planning worksheet for senior engineer inputs to Spec Kit (spec/plan). Minimal structure to organize initial thinking; let Spec Kit infer details. Fill in all <...> placeholders. -->
+# <Feature, Chore or Bugfix Title>
 
 ## What and Why
 
@@ -29,8 +38,12 @@ description: Generate a planning worksheet from the current chat context using t
 
 - <Measurable or acceptance statement #1>
 - <Measurable or acceptance statement #2>
+```
 
----
+Template B — How: Implementation Plan
+
+```markdown
+# <Feature, Chore or Bugfix Title>
 
 ## How: Implementation Plan
 
@@ -74,22 +87,28 @@ description: Generate a planning worksheet from the current chat context using t
 
 # Your Task
 
-Using the template above and the current conversation:
+Using the templates above and the current conversation:
 
-1. Produce a completed planning worksheet in the exact structure shown in the Template.
-2. Extract Intent, Value, and Signals of success from the conversation. Keep them concise.
-3. Outline Constraints & principles and Unknowns & assumptions.
+1. Produce TWO completed Markdown documents:
+   - Document 1: What and Why (Template A)
+   - Document 2: How: Implementation Plan (Template B)
+2. Extract Intent, Value, and Signals of success from the conversation for Document 1. Keep them concise.
+3. For Document 2, outline Constraints & principles and Unknowns & assumptions.
    - Use [NEEDS CLARIFICATION: ...] for any ambiguity rather than guessing.
 4. Provide a brief Approach sketch aligned to the conversation context.
 5. Set an appropriate Execution cadence (e.g., “Generic phases” or “Add QA checkpoint prior to release”).
 6. Fill Logistics with any IDs/owners/links mentioned in the conversation. If not present, leave placeholders.
-7. If "$ARGUMENTS" is provided, incorporate them as clarifying notes or into relevant sections.
-8. Output only the completed planning worksheet as Markdown. Do not include commentary, the raw template, or extra prose.
+7. If "$ARGUMENTS" is provided, incorporate them as clarifying notes or into relevant sections of either document.
+8. Output only the two completed Markdown documents. Do not include commentary, the raw template, or extra prose.
 
 # Output Format
 
-Return a single Markdown document that strictly follows the section headings in the template:
+Return TWO Markdown documents, in this order:
 
-- “What and Why” → Intent, Value, Signals of success
-- “How: Implementation Plan” → Constraints & principles, Unknowns & assumptions, Approach sketch, Execution cadence, Logistics
-- Optional: Risks & mitigations, Scope (in/out), Notes & links
+1) What and Why document (Template A):
+   - Includes: Intent, Value, Signals of success
+2) How: Implementation Plan document (Template B):
+   - Includes: Constraints & principles, Unknowns & assumptions, Approach sketch, Execution cadence, Logistics
+   - Optional: Risks & mitigations, Scope (in/out), Notes & links
+
+Do not include commentary, the raw templates, or extra prose. Separate the two documents with a blank line and a line containing only `---`, or return them as two distinct Markdown blocks if supported.
