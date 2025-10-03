@@ -98,8 +98,9 @@ function Invoke-ElevatedBatch {
 
 # Ensure we're running from the repository root
 $repoRoot = Split-Path -Parent $PSScriptRoot
-if (-not (Test-Path (Join-Path $repoRoot ".claude"))) {
-    Write-Error "This script must be run from the root of the cape repository"
+# Verify this is the cape repository by checking for expected directories
+if (-not ((Test-Path (Join-Path $repoRoot "agents")) -and (Test-Path (Join-Path $repoRoot "hooks")) -and (Test-Path (Join-Path $repoRoot "scripts")))) {
+    Write-Error "This script must be run from the root of the cape repository (missing agents, hooks, or scripts directories)"
     exit 1
 }
 
