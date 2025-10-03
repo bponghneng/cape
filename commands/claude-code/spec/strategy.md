@@ -1,26 +1,28 @@
-# spec:strategy
-
-Create strategic plan workspace with template and checklist
+---
+argument-hint: [project-name] [work-description...]
+description: Create strategic plan document with template and checklist
+allowed-tools: Write, Read
+---
 
 ## Usage
 
-```
-/spec:strategy
+```bash
+/spec:strategy user-authentication "Implement OAuth 2.0 user authentication"
+/spec:strategy payment-flow "Add Stripe payment integration"
 ```
 
-## Examples
+## Arguments
 
-```
-/spec:strategy
-```
+- `project-name`: Kebab-case project identifier (e.g., user-auth, payment-flow)
+- `work-description`: Brief description of the work (rest of arguments)
 
 ## Implementation
 
-This command will:
-
-1. **Ask user for work description** and project name
-2. **Create workspace** at `ai_docs/features/active/{project-name}/`
-3. **Generate strategy.md** with:
+1. **Parse arguments**: Extract project name and work description from `$ARGUMENTS`
+2. **Prompt if missing**: If no arguments provided, ask user for:
+   - Project name (kebab-case)
+   - Work description (brief summary)
+3. **Generate strategy.md** in `ai_docs/` directory with:
    - Work item details from user input
    - Strategic plan template with TODO sections
    - Completion checklist at the top
@@ -29,11 +31,34 @@ After creation, use conversational workflow to complete the strategic plan secti
 
 ## Output
 
-Creates `ai_docs/features/active/{project-name}/strategy.md` with embedded strategic plan template.
+Creates `ai_docs/strategy-{project-name}.md` with embedded strategic plan template.
+
+## Your Task
+
+1. **Extract or prompt for inputs**:
+   - If `$ARGUMENTS` is provided, parse it as: `project-name work-description...`
+   - If `$ARGUMENTS` is empty, prompt the user:
+     ```
+     Please provide:
+     1. Project name (kebab-case, e.g., user-authentication)
+     2. Work description (brief summary of the work)
+     ```
+   - Wait for user response before proceeding
+
+2. **Generate the strategy document**:
+   - Use the template below
+   - Replace `{PROJECT-NAME}` with the project name
+   - Replace `{PROJECT-DESCRIPTION}` with the work description
+   - Replace `{DATE}` with current date in YYYY-MM-DD format
+   - Create file at `ai_docs/strategy-{project-name}.md`
+
+3. **Confirm creation**:
+   - Display the file path
+   - Show a brief summary of next steps
 
 ## Strategic Plan Template
 
-The strategy.md will be created with this embedded template:
+Create the strategy document with this template:
 
 ```markdown
 # Strategic Plan: {PROJECT-NAME}
