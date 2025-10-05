@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "click",
+#     "typer",
 #     "rich",
 # ]
 # ///
@@ -36,9 +36,8 @@ from pathlib import Path
 from typing import NamedTuple
 from dataclasses import dataclass
 
-import click
+import typer
 from rich.console import Console
-from rich.prompt import Confirm
 
 console = Console()
 
@@ -63,8 +62,10 @@ SYMLINK_CONFIG = [
     SymlinkMapping("agents/opencode", ".opencode/agent", "*.md", "Agents", recursive=False),
     SymlinkMapping("hooks/claude-code", ".claude/hooks", "*", "Hooks", recursive=True),
     SymlinkMapping("commands/claude-code", ".claude/commands", "*", "Commands", recursive=True),
-    SymlinkMapping("ai_docs", "ai_docs", "*.md", "AI docs", recursive=False),
 ]
+
+# AI documentation mapping (conditionally included)
+AI_DOCS_CONFIG = SymlinkMapping("ai_docs", "ai_docs", "*.md", "AI docs", recursive=False)
 
 
 @dataclass
@@ -451,7 +452,7 @@ def handle_env_sample(repo_root: Path, target_dir: Path, force: bool) -> None:
         console.print("Copying environment variables example...")
         copy_sample = True
     else:
-        copy_sample = Confirm.ask("Copy environment variables example?", default=True)
+        copy_sample = typer.confirm("Copy environment variables example?", default=True)
 
     if copy_sample:
         try:
@@ -465,14 +466,15 @@ def handle_env_sample(repo_root: Path, target_dir: Path, force: bool) -> None:
         console.print("[cyan]You can copy .env.hooks.example manually later.[/cyan]")
 
 
-@click.command()
-@click.argument('target_dir', type=click.Path())
-@click.option('--force', '-f', is_flag=True, help='Skip confirmation prompts')
-def main(target_dir: str, force: bool) -> None:
+def main(
+    target_dir: str = typer.Argument(help="Target directory to create symlinks in"),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompts"),
+    include_ai_docs: bool = typer.Option(True, "--include-ai-docs/--no-include-ai-docs", help="Include AI documentation symlinks")
+) -> None:
     """
     Create symlinks from the cape repository to TARGET_DIR.
 
-    This script creates symbolic links for agents, hooks, commands, and AI documentation
+    This script creates symbolic links for agents, hooks, commands, and optionally AI documentation
     from the cape repository to your target directory.
 
     Examples:
@@ -480,6 +482,8 @@ def main(target_dir: str, force: bool) -> None:
         uv run scripts/create-symlinks.py ~/my-project
 
         uv run scripts/create-symlinks.py /path/to/target --force
+
+        uv run scripts/create-symlinks.py /path/to/target --no-include-ai-docs
     """
     # Get and validate repository root
     repo_root = get_repo_root()
@@ -511,6 +515,15 @@ def main(target_dir: str, force: bool) -> None:
         operations, results = process_mapping(repo_root, target_path, mapping, collect_for_batch=should_batch)
         all_operations.extend(operations)
         all_results.extend(results)
+
+    # Process AI docs if requested
+    if include_ai_docs:
+        operations, results = process_mapping(repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=should_batch)
+        all_operations.extend(operations)
+        all_results.extend(results)
+    else:
+        if not should_batch:
+            console.print("[yellow]Skipping AI documentation (use --include-ai-docs to enable)[/yellow]")
 
     # Execute batch operations if needed
     if should_batch and all_operations:
@@ -556,4 +569,4 @@ def main(target_dir: str, force: bool) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
