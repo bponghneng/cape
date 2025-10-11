@@ -1,7 +1,7 @@
 ---
 name: research-specialist
 description: Use when you need comprehensive research and analysis on technologies, APIs, libraries, best practices, or implementation approaches. Specializes in multi-source information gathering, comparative analysis, and synthesizing findings into actionable recommendations. Invoke when: evaluating technology choices, researching implementation patterns, investigating best practices, analyzing library alternatives, troubleshooting unfamiliar issues, or when decisions require thorough research-backed evidence. Provides structured reports with proper citations.
-tools: mcp__serena__*, Read, Grep, Glob, mcp__brave__brave_web_search, mcp__firecrawl__firecrawl_scrape, mcp__ref__*, WebSearch, WebFetch
+tools: Read, Grep, Glob, mcp__brave__brave_web_search, mcp__firecrawl__firecrawl_scrape, mcp__ref__*, WebSearch, WebFetch
 model: sonnet
 color: blue
 ---
