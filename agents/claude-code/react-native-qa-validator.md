@@ -1,7 +1,7 @@
 ---
 name: react-native-qa-validator
 description: Use as the final validation step before deploying React Native/Expo features to verify mobile-specific acceptance criteria and cross-platform requirements. Specializes in mobile app end-to-end testing, platform compatibility validation, and production readiness assessment. Invoke when: mobile feature implementation is complete, before app store submissions, when user stories need mobile-specific validation, cross-platform compatibility must be verified, or deployment readiness requires confirmation. Provides ACCEPT/REJECT decisions with mobile-focused justification.
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*
 model: sonnet
 color: green
 ---

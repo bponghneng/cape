@@ -1,7 +1,7 @@
 ---
 name: elixir-otp-architect
 description: Use when facing architectural decisions or complex technical design choices in Elixir/Phoenix applications. Specializes in simplicity-first OTP design, supervision tree planning, and MVP-focused technical guidance. Invoke when: considering GenServer/Agent usage, designing supervision strategies, planning real-time features with Phoenix Channels, evaluating technical complexity, needing performance optimization guidance, or when current code seems over-engineered. Prioritizes starting simple and adding complexity only when necessary.
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*
 model: opus
 color: purple
 ---

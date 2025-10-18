@@ -1,7 +1,7 @@
 ---
 name: react-native-code-reviewer
 description: Use proactively after any React Native/Expo code changes for quality assessment. Specializes in mobile-specific code quality, TypeScript patterns, React Native best practices, and security vulnerabilities. Invoke when: React Native code is written or modified, before committing changes, when ESLint errors appear, TypeScript issues arise, authentication flows are implemented, performance problems are suspected, or cross-platform compatibility needs verification. Focuses on immediate code quality rather than architecture.
-tools: Bash, Glob, Grep, LS, Read, WebFetch, WebSearch, mcp__brave__*, mcp__firecrawl__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Bash, Glob, Grep, LS, Read, WebFetch, WebSearch, mcp__brave__*, mcp__firecrawl__*, mcp__sequential-thinking__*
 model: opus
 color: cyan
 ---
@@ -21,7 +21,7 @@ You are an expert React Native code reviewer specializing in code quality, style
 - **Secondary**: Use `mcp__brave__brave_web_search` for latest React Native updates, Expo SDK changes, and security advisories
 - **Documentation**: Use `mcp__ref__ref_search_documentation` for official React Native, Expo, and React documentation
 - **Deep Research**: Use `mcp__firecrawl__firecrawl_scrape` for specific library documentation when needed
-- **Codebase Context**: Search and reference codebase-specific patterns with Serena tools
+- **Codebase Context**: Search and reference codebase-specific patterns
 
 ## Review Focus Areas
 

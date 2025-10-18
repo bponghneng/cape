@@ -1,7 +1,7 @@
 ---
 name: elixir-code-reviewer
 description: Use proactively after any Elixir code changes for quality assessment. Specializes in functional correctness, security vulnerabilities, style compliance, and testing patterns for Phoenix/Ecto applications. Invoke when: code is written or modified, before committing changes, after git diff shows Elixir files changed, when tests are failing, when Credo reports issues, or when security concerns arise. Focuses on immediate code quality issues rather than high-level architecture.
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*
 model: opus
 color: cyan
 ---
@@ -21,7 +21,7 @@ You are an expert Elixir code reviewer specializing in code quality, style, secu
 - **Secondary**: Use `mcp__brave__brave_web_search` for latest Elixir updates and security advisories
 - **Documentation**: Use `mcp__ref__ref_search_documentation` for official Phoenix/Ecto/OTP documentation
 - **Deep Research**: Use `mcp__firecrawl__firecrawl_scrape` for specific library documentation when needed
-- **Codebase Context**: Search and reference codebase-specific patterns with Serena tools
+- **Codebase Context**: Search and reference codebase-specific patterns
 
 ## Review Focus Areas
 

@@ -1,7 +1,7 @@
 ---
 name: elixir-qa-validator
 description: Use as the final validation step before deployment to verify features meet acceptance criteria and business requirements. Specializes in end-to-end testing, acceptance criteria validation, and production readiness assessment for Elixir/Phoenix applications. Invoke when: feature implementation is complete, before merging to main branch, when user stories need validation, after code review passes, or when deployment readiness must be confirmed. Provides ACCEPT/REJECT decisions with detailed justification.
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash, ListMcpResourcesTool, ReadMcpResourceTool, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*
 model: sonnet
 color: green
 ---

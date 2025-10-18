@@ -1,7 +1,7 @@
 ---
 name: react-native-architect
 description: Use when React Native/Expo applications need architectural planning and design guidance for complex features. Specializes in component composition, state management patterns, navigation design, and mobile-specific architecture planning. Invoke when: planning complex navigation flows, designing state management architecture, implementing real-time features, refactoring component hierarchies, optimizing performance patterns, or when cross-platform considerations need strategic planning. Provides implementation plans rather than code.
-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*, mcp__serena__*
+tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, mcp__brave__*, mcp__firecrawl__*, mcp__ref__*, mcp__sequential-thinking__*
 model: opus
 color: blue
 ---
