@@ -2,6 +2,10 @@
 
 This file provides guidance to AI coding agents when working with code in this repository.
 
+**⚠️ IMPORTANT: Workspace Structure**
+
+This is a **workspace folder**. The project repository is `[repo directory]`. Read and follow `README.md` for complete details on relevant and irrelevant files.
+
 ## Project Overview
 
 [description of project]
@@ -46,16 +50,32 @@ Apply these principles when evaluating whether complex patterns, or advanced opt
 
 ## Development Commands
 
+**⚠️ IMPORTANT: Project Repository**: As noted in `Workspace Structure`, the project repository is `[repo directory]`. All of the development commands are run from the root of the project repository.
+
 **Package Management**: [description of package manager]
+
+**Development Server**:
+- `[command1 to start development server]` - [Description of command1]
+- `[command2 for another development task]` - [Description of command2]
 
 **Code Quality Tools**:
 
 - `[code-quality-tool1]`: [command to run1]
 - `[code-quality-tool2]`: [command to run2]
 
-**Development Dependencies**: [command to install dependencies]
+**Testing**:
+- `[test-tool1]`: [Description of test tool1]
+- `[test-tool2]`: [Description of test tool2]
+
+**[Other Tools, like Code Generators, Development Dependencies, etc.]**:
+- `[other-tool1]`: [Description of other tool1]
+- `[other-tool2]`: [Description of other tool2]
+
+**Setup**: `[setup-command]` - [Description of setup command]
 
 ## Architecture
+
+**⚠️ IMPORTANT: Project Architecture**: As noted in `Workspace Structure`, the project repository is in `[repo directory]/`.
 
 **Current Structure**:
 
