@@ -15,7 +15,7 @@ Creates symlinks from the cape repository to a target directory.
 This script creates symbolic links from the cape repository to a target directory:
 - Agent files (.md): agents/claude-code -> .claude/agents, agents/opencode -> .opencode/agent
 - Hook files: hooks/claude-code -> .claude/hooks
-- Command files: commands/claude-code -> .claude/commands
+- Command files: commands/claude-code -> .claude/commands, commands/opencode -> .opencode/command, commands/roo -> .roo/commands
 - Documentation: ai_docs -> ai_docs
 
 Creates parent directories automatically and replaces existing symlinks.
@@ -49,6 +49,7 @@ REQUIRED_DIRS = ["agents", "hooks", "commands", "scripts"]
 @dataclass
 class SymlinkMapping:
     """Configuration for symlink mappings."""
+
     source_dir: str
     target_base: str
     pattern: str
@@ -58,19 +59,32 @@ class SymlinkMapping:
 
 # Configurable symlink mappings
 SYMLINK_CONFIG = [
-    SymlinkMapping("agents/claude-code", ".claude/agents", "*.md", "Agents", recursive=False),
-    SymlinkMapping("agents/opencode", ".opencode/agent", "*.md", "Agents", recursive=False),
+    SymlinkMapping(
+        "agents/claude-code", ".claude/agents", "*.md", "Agents", recursive=False
+    ),
+    SymlinkMapping(
+        "agents/opencode", ".opencode/agent", "*.md", "Agents", recursive=False
+    ),
     SymlinkMapping("hooks/claude-code", ".claude/hooks", "*", "Hooks", recursive=True),
-    SymlinkMapping("commands/claude-code", ".claude/commands", "*", "Commands", recursive=True),
+    SymlinkMapping(
+        "commands/claude-code", ".claude/commands", "*", "Commands", recursive=True
+    ),
+    SymlinkMapping("commands/roo", ".roo/commands", "*", "Commands", recursive=True),
+    SymlinkMapping(
+        "commands/opencode", ".opencode/command", "*.md", "Commands", recursive=True
+    ),
 ]
 
 # AI documentation mapping (conditionally included)
-AI_DOCS_CONFIG = SymlinkMapping("ai_docs", "ai_docs", "*.md", "AI docs", recursive=False)
+AI_DOCS_CONFIG = SymlinkMapping(
+    "ai_docs", "ai_docs", "*.md", "AI docs", recursive=False
+)
 
 
 @dataclass
 class SymlinkOperation:
     """Represents a single symlink operation to be performed."""
+
     source_path: Path
     target_path: Path
     description: str
@@ -78,6 +92,7 @@ class SymlinkOperation:
 
 class OperationResult(NamedTuple):
     """Result of a symlink operation."""
+
     success: bool
     message: str
 
@@ -138,11 +153,15 @@ def validate_target_directory(target_dir: Path) -> None:
 
     parent = target_dir.parent
     if not parent.exists():
-        console.print(f"[red]Error: Parent directory of target does not exist: {parent}[/red]")
+        console.print(
+            f"[red]Error: Parent directory of target does not exist: {parent}[/red]"
+        )
         sys.exit(1)
 
     if not os.access(parent, os.W_OK):
-        console.print(f"[red]Error: No write permission to create target directory: {parent}[/red]")
+        console.print(
+            f"[red]Error: No write permission to create target directory: {parent}[/red]"
+        )
         sys.exit(1)
 
 
@@ -158,7 +177,10 @@ def find_files(source_path: Path, pattern: str, recursive: bool) -> list[Path]:
         for item in source_path.rglob(pattern):
             # Skip items in hidden directories (starting with .)
             # Only include files, not directories
-            if item.is_file() and not any(part.startswith('.') for part in item.relative_to(source_path).parts[:-1]):
+            if item.is_file() and not any(
+                part.startswith(".")
+                for part in item.relative_to(source_path).parts[:-1]
+            ):
                 items.append(item)
         return items
     else:
@@ -172,7 +194,7 @@ def create_symlink(
     source_rel: str,
     target_rel: str,
     description: str,
-    collect_for_batch: bool = False
+    collect_for_batch: bool = False,
 ) -> SymlinkOperation | OperationResult:
     """
     Create a single symlink or collect it for batch execution.
@@ -190,9 +212,7 @@ def create_symlink(
     # If collecting for batch, return the operation
     if collect_for_batch:
         return SymlinkOperation(
-            source_path=source_path,
-            target_path=target_path,
-            description=description
+            source_path=source_path, target_path=target_path, description=description
         )
 
     # Execute immediately
@@ -206,10 +226,14 @@ def create_symlink(
             target_path.unlink()
         elif target_path.is_dir():
             # It's a directory, skip
-            return OperationResult(False, f"Target directory exists, skipping: {target_path}")
+            return OperationResult(
+                False, f"Target directory exists, skipping: {target_path}"
+            )
         else:
             # It's a file, skip
-            return OperationResult(False, f"Target file exists, skipping: {target_path}")
+            return OperationResult(
+                False, f"Target file exists, skipping: {target_path}"
+            )
 
     # Create symlink
     try:
@@ -219,7 +243,9 @@ def create_symlink(
         return OperationResult(False, f"{description} failed: {e}")
 
 
-def execute_symlink_batch_elevated(operations: list[SymlinkOperation], force: bool) -> list[OperationResult]:
+def execute_symlink_batch_elevated(
+    operations: list[SymlinkOperation], force: bool
+) -> list[OperationResult]:
     """
     Execute a batch of symlink operations with elevated privileges on Windows.
 
@@ -237,106 +263,122 @@ def execute_symlink_batch_elevated(operations: list[SymlinkOperation], force: bo
         "from pathlib import Path",
         "",
         "results = []",
-        ""
+        "",
     ]
 
     for op in operations:
         # Escape paths for Python string literals
-        source_str = str(op.source_path).replace('\\', '\\\\').replace('"', '\\"')
-        target_str = str(op.target_path).replace('\\', '\\\\').replace('"', '\\"')
-        desc_str = op.description.replace('\\', '\\\\').replace('"', '\\"')
+        source_str = str(op.source_path).replace("\\", "\\\\").replace('"', '\\"')
+        target_str = str(op.target_path).replace("\\", "\\\\").replace('"', '\\"')
+        desc_str = op.description.replace("\\", "\\\\").replace('"', '\\"')
 
-        script_lines.extend([
-            f'# {op.description}',
-            'try:',
-            f'    source_path = Path(r"{source_str}")',
-            f'    target_path = Path(r"{target_str}")',
-            f'    description = "{desc_str}"',
-            '',
-            '    # Create parent directory',
-            '    target_path.parent.mkdir(parents=True, exist_ok=True)',
-            '',
-            '    # Handle existing target',
-            '    if target_path.exists() or target_path.is_symlink():',
-            '        if target_path.is_symlink():',
-            '            target_path.unlink()',
-            '        elif target_path.is_dir():',
-            '            results.append({"success": False, "message": f"Target directory exists, skipping: {target_path}"})',
-            '            raise Exception("Directory exists")',
-            '        else:',
-            '            results.append({"success": False, "message": f"Target file exists, skipping: {target_path}"})',
-            '            raise Exception("File exists")',
-            '',
-            '    # Create symlink',
-            '    target_path.symlink_to(source_path, target_is_directory=source_path.is_dir())',
-            '    results.append({"success": True, "message": description})',
-            'except Exception as e:',
-            '    if not any(r.get("message", "").startswith(description) for r in results):',
-            '        results.append({"success": False, "message": f"{description} failed: {e}"})',
-            ''
-        ])
+        script_lines.extend(
+            [
+                f"# {op.description}",
+                "try:",
+                f'    source_path = Path(r"{source_str}")',
+                f'    target_path = Path(r"{target_str}")',
+                f'    description = "{desc_str}"',
+                "",
+                "    # Create parent directory",
+                "    target_path.parent.mkdir(parents=True, exist_ok=True)",
+                "",
+                "    # Handle existing target",
+                "    if target_path.exists() or target_path.is_symlink():",
+                "        if target_path.is_symlink():",
+                "            target_path.unlink()",
+                "        elif target_path.is_dir():",
+                '            results.append({"success": False, "message": f"Target directory exists, skipping: {target_path}"})',
+                '            raise Exception("Directory exists")',
+                "        else:",
+                '            results.append({"success": False, "message": f"Target file exists, skipping: {target_path}"})',
+                '            raise Exception("File exists")',
+                "",
+                "    # Create symlink",
+                "    target_path.symlink_to(source_path, target_is_directory=source_path.is_dir())",
+                '    results.append({"success": True, "message": description})',
+                "except Exception as e:",
+                '    if not any(r.get("message", "").startswith(description) for r in results):',
+                '        results.append({"success": False, "message": f"{description} failed: {e}"})',
+                "",
+            ]
+        )
 
-    script_lines.extend([
-        '# Output results as JSON',
-        'print(json.dumps(results))',
-        'sys.exit(0)'
-    ])
+    script_lines.extend(
+        ["# Output results as JSON", "print(json.dumps(results))", "sys.exit(0)"]
+    )
 
-    script_content = '\n'.join(script_lines)
+    script_content = "\n".join(script_lines)
 
     # Create temporary script file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False, encoding="utf-8"
+    ) as f:
         temp_script = f.name
         f.write(script_content)
 
     try:
         # Prompt for elevation if not in force mode
         if not force:
-            console.print(f"\n[yellow]About to request elevation to create {len(operations)} symlinks.[/yellow]")
+            console.print(
+                f"\n[yellow]About to request elevation to create {len(operations)} symlinks.[/yellow]"
+            )
             choice = input("Proceed with elevation? (y/N): ").strip().lower()
-            if choice not in ['y', 'yes']:
+            if choice not in ["y", "yes"]:
                 console.print("[yellow]Operation cancelled.[/yellow]")
-                return [OperationResult(False, "Operation cancelled by user") for _ in operations]
+                return [
+                    OperationResult(False, "Operation cancelled by user")
+                    for _ in operations
+                ]
 
-        console.print(f"[yellow]Requesting elevation to create {len(operations)} symlinks...[/yellow]")
+        console.print(
+            f"[yellow]Requesting elevation to create {len(operations)} symlinks...[/yellow]"
+        )
 
         # Use PowerShell to elevate and capture output
         ps_command = f'Start-Process -FilePath "{sys.executable}" -ArgumentList "{temp_script}" -Verb RunAs -Wait -WindowStyle Hidden'
 
         # Create output capture script
-        output_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+        output_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, encoding="utf-8"
+        )
         output_path = output_file.name
         output_file.close()
 
         # Modify the script to redirect output
-        with open(temp_script, 'r', encoding='utf-8') as f:
+        with open(temp_script, "r", encoding="utf-8") as f:
             original_content = f.read()
 
         modified_content = original_content.replace(
-            'print(json.dumps(results))',
-            f'with open(r"{output_path}", "w", encoding="utf-8") as f: f.write(json.dumps(results))'
+            "print(json.dumps(results))",
+            f'with open(r"{output_path}", "w", encoding="utf-8") as f: f.write(json.dumps(results))',
         )
 
-        with open(temp_script, 'w', encoding='utf-8') as f:
+        with open(temp_script, "w", encoding="utf-8") as f:
             f.write(modified_content)
 
         # Execute elevated script
         result = subprocess.run(
-            ['powershell', '-Command', ps_command],
+            ["powershell", "-Command", ps_command],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         # Read results from output file
         try:
-            with open(output_path, 'r', encoding='utf-8') as f:
+            with open(output_path, "r", encoding="utf-8") as f:
                 results_data = json.loads(f.read())
 
-            return [OperationResult(r['success'], r['message']) for r in results_data]
+            return [OperationResult(r["success"], r["message"]) for r in results_data]
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            console.print(f"[red]Failed to read results from elevated script: {e}[/red]")
-            return [OperationResult(False, f"{op.description} - elevation failed") for op in operations]
+            console.print(
+                f"[red]Failed to read results from elevated script: {e}[/red]"
+            )
+            return [
+                OperationResult(False, f"{op.description} - elevation failed")
+                for op in operations
+            ]
         finally:
             # Clean up output file
             try:
@@ -346,10 +388,15 @@ def execute_symlink_batch_elevated(operations: list[SymlinkOperation], force: bo
 
     except subprocess.TimeoutExpired:
         console.print("[red]Elevation request timed out[/red]")
-        return [OperationResult(False, f"{op.description} - timeout") for op in operations]
+        return [
+            OperationResult(False, f"{op.description} - timeout") for op in operations
+        ]
     except Exception as e:
         console.print(f"[red]Batch execution failed: {e}[/red]")
-        return [OperationResult(False, f"{op.description} - execution failed") for op in operations]
+        return [
+            OperationResult(False, f"{op.description} - execution failed")
+            for op in operations
+        ]
     finally:
         # Clean up temporary script
         try:
@@ -375,10 +422,14 @@ def execute_symlink_direct(operation: SymlinkOperation) -> OperationResult:
             target_path.unlink()
         elif target_path.is_dir():
             # It's a directory, skip
-            return OperationResult(False, f"Target directory exists, skipping: {target_path}")
+            return OperationResult(
+                False, f"Target directory exists, skipping: {target_path}"
+            )
         else:
             # It's a file, skip
-            return OperationResult(False, f"Target file exists, skipping: {target_path}")
+            return OperationResult(
+                False, f"Target file exists, skipping: {target_path}"
+            )
 
     # Create symlink
     try:
@@ -392,7 +443,7 @@ def process_mapping(
     repo_root: Path,
     target_dir: Path,
     mapping: SymlinkMapping,
-    collect_for_batch: bool = False
+    collect_for_batch: bool = False,
 ) -> tuple[list[SymlinkOperation], list[OperationResult]]:
     """
     Process a symlink mapping configuration.
@@ -404,7 +455,9 @@ def process_mapping(
     source_path = repo_root / mapping.source_dir
 
     if not source_path.exists():
-        console.print(f"[yellow]Warning: {mapping.label} directory not found: {source_path}[/yellow]")
+        console.print(
+            f"[yellow]Warning: {mapping.label} directory not found: {source_path}[/yellow]"
+        )
         return ([], [])
 
     if not collect_for_batch:
@@ -423,7 +476,14 @@ def process_mapping(
         target_rel = str(Path(mapping.target_base) / relative_path)
         description = f"{mapping.label}: {relative_path}"
 
-        result = create_symlink(repo_root, target_dir, source_rel, target_rel, description, collect_for_batch)
+        result = create_symlink(
+            repo_root,
+            target_dir,
+            source_rel,
+            target_rel,
+            description,
+            collect_for_batch,
+        )
 
         if isinstance(result, SymlinkOperation):
             operations.append(result)
@@ -445,7 +505,9 @@ def handle_env_sample(repo_root: Path, target_dir: Path, force: bool) -> None:
     target_file = target_dir / ENV_SAMPLE_FILE
 
     if not sample_file.exists():
-        console.print(f"[yellow]Warning: Environment sample not found: {sample_file}[/yellow]")
+        console.print(
+            f"[yellow]Warning: Environment sample not found: {sample_file}[/yellow]"
+        )
         return
 
     if force:
@@ -468,8 +530,14 @@ def handle_env_sample(repo_root: Path, target_dir: Path, force: bool) -> None:
 
 def main(
     target_dir: str = typer.Argument(help="Target directory to create symlinks in"),
-    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompts"),
-    include_ai_docs: bool = typer.Option(True, "--include-ai-docs/--no-include-ai-docs", help="Include AI documentation symlinks")
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Skip confirmation prompts"
+    ),
+    include_ai_docs: bool = typer.Option(
+        True,
+        "--include-ai-docs/--no-include-ai-docs",
+        help="Include AI documentation symlinks",
+    ),
 ) -> None:
     """
     Create symlinks from the cape repository to TARGET_DIR.
@@ -512,18 +580,24 @@ def main(
         console.print()
 
     for mapping in SYMLINK_CONFIG:
-        operations, results = process_mapping(repo_root, target_path, mapping, collect_for_batch=should_batch)
+        operations, results = process_mapping(
+            repo_root, target_path, mapping, collect_for_batch=should_batch
+        )
         all_operations.extend(operations)
         all_results.extend(results)
 
     # Process AI docs if requested
     if include_ai_docs:
-        operations, results = process_mapping(repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=should_batch)
+        operations, results = process_mapping(
+            repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=should_batch
+        )
         all_operations.extend(operations)
         all_results.extend(results)
     else:
         if not should_batch:
-            console.print("[yellow]Skipping AI documentation (use --include-ai-docs to enable)[/yellow]")
+            console.print(
+                "[yellow]Skipping AI documentation (use --include-ai-docs to enable)[/yellow]"
+            )
 
     # Execute batch operations if needed
     if should_batch and all_operations:
@@ -557,14 +631,18 @@ def main(
     if success_all == total_all and total_all > 0:
         console.print(f"[green]Success: {success_all}/{total_all} operations[/green]")
     elif total_all > 0:
-        console.print(f"[yellow]Partial success: {success_all}/{total_all} operations[/yellow]")
+        console.print(
+            f"[yellow]Partial success: {success_all}/{total_all} operations[/yellow]"
+        )
     else:
         console.print("[green]No operations needed.[/green]")
 
     # Handle environment sample if hooks were created
     if hooks_created:
         console.print()
-        console.print("[cyan]📋 Note: Claude Code hooks require API keys in environment variables.[/cyan]")
+        console.print(
+            "[cyan]📋 Note: Claude Code hooks require API keys in environment variables.[/cyan]"
+        )
         handle_env_sample(repo_root, target_path, force)
 
 
