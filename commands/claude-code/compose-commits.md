@@ -4,21 +4,23 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 thinking: true
 ---
 
-## Context
+# Compose Commits
 
-- Current git status: !`git status`
-- Unstaged changes: !`git diff`
-- Staged changes: !`git diff --cached`
-- Current branch: !`git branch --show-current`
-- Recent commits for reference: !`git log --oneline -10`
+Examine the repo defined in `Repository` and follow `Instructions` to compose conventional commits from unstaged changes then report the results in the exact format specified `Report`.
 
-## Conventional Commits Standard
+## Instructions
 
-@ai_docs/conventional_commits.md
+- Examine the repo defined in `Repository`. If there is no repo defined, then default to the current directory
+- Use `cd` to change to the repo directory if not the current directory
+- Use `git status` to examine the current state of the repo
+- Use `git diff` to examine the unstaged changes
+- Use `git diff --cached` to examine the staged changes
+- Use `git branch --show-current` to examine the current branch
+- Use `git log --oneline -10` to examine the recent commits
+- Read @ai_docs/conventional-commits.md to understand the conventional commits standard
+- Based on the git changes shown above, follow the `Commit Process`create meaningful conventional commits
 
-## Your Task
-
-Based on the git changes shown above, create meaningful conventional commits:
+## Commit Process
 
 ### 1. Group Changes
 Analyze the changes and logically group related modifications that should be committed together. Consider:
@@ -40,14 +42,17 @@ For each group:
 1. Stage the relevant files using `git add`
 2. Commit with the composed message using `git commit -m`
 
-### 4. Report Results
-List all commits created with:
-- Full commit message
-- SHA hash
-- Files included
-
 ## Edge Cases
 
 - If no changes exist, report this and exit
 - If changes are already staged, unstage them before composing
 - If changes span multiple unrelated features, create separate commits
+
+## Report
+List all commits created with:
+- Full commit message
+- SHA hash
+- Files included
+
+## Repository
+$ARGUMENTS
