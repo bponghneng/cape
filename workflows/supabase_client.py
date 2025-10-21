@@ -123,3 +123,43 @@ def create_comment(issue_id: int, text: str) -> CapeComment:
         raise ValueError(
             f"Failed to create comment on issue {issue_id}: {e}"
         ) from e
+
+
+def create_issue(description: str) -> CapeIssue:
+    """Create a new Cape issue with the given description.
+
+    Args:
+        description: The issue description text. Will be trimmed of leading/trailing whitespace.
+                    Must not be empty after trimming.
+
+    Returns:
+        CapeIssue: The created issue with database-generated id and timestamps.
+
+    Raises:
+        ValueError: If description is empty after trimming, or if database operation fails.
+    """
+    description_clean = description.strip()
+
+    if not description_clean:
+        raise ValueError("Issue description cannot be empty")
+
+    client = get_client()
+
+    issue_data = {
+        "description": description_clean,
+        "status": "pending",
+    }
+
+    try:
+        response = (
+            client.table("cape_issues").insert(issue_data).execute()
+        )
+
+        if not response.data:
+            raise ValueError("Issue creation returned no data")
+
+        return CapeIssue(**response.data[0])
+
+    except APIError as e:
+        logger.error(f"Database error creating issue: {e}")
+        raise ValueError(f"Failed to create issue: {e}") from e
