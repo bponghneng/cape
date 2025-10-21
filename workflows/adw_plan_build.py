@@ -1,11 +1,10 @@
 #!/usr/bin/env -S uv run
 # /// script
-# dependencies = ["python-dotenv", "pydantic"]
+# dependencies = ["python-dotenv", "pydantic", "supabase"]
 # ///
 """Task increment workflow driver."""
 
 import sys
-from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from dotenv import load_dotenv
@@ -13,9 +12,11 @@ from dotenv import load_dotenv
 from data_types import (
     AgentPromptResponse,
     AgentTemplateRequest,
+    CapeIssue,
 )
 from agent import execute_template
 from utils import make_adw_id, setup_logger
+from supabase import fetch_issue
 
 AGENT_IMPLEMENTOR = "sdlc_implementor"
 AGENT_PLANNER = "sdlc_planner"
@@ -23,15 +24,15 @@ AGENT_CLASSIFIER = "issue_classifier"
 AGENT_PLAN_FINDER = "plan_finder"
 
 
-def parse_args(logger: Optional[object] = None) -> Tuple[str, Optional[str]]:
+def parse_args(logger: Optional[object] = None) -> Tuple[int, Optional[str]]:
     """Parse command line arguments.
 
-    Returns (issue_path, adw_id) where adw_id may be None."""
+    Returns (issue_id, adw_id) where adw_id may be None."""
     if len(sys.argv) < 2:
         usage_msg = [
-            "Usage: uv run adw_plan_build.py <issue-path> [adw-id]",
-            "Example: uv run adw_plan_build.py ../specs/issue-123.md",
-            "Example: uv run adw_plan_build.py ../specs/issue-123.md abc12345",
+            "Usage: uv run adw_plan_build.py <issue-id> [adw-id]",
+            "Example: uv run adw_plan_build.py 123",
+            "Example: uv run adw_plan_build.py 123 abc12345",
         ]
         if logger:
             for msg in usage_msg:
@@ -41,24 +42,30 @@ def parse_args(logger: Optional[object] = None) -> Tuple[str, Optional[str]]:
                 print(msg)
         sys.exit(1)
 
-    issue_path = sys.argv[1]
+    try:
+        issue_id = int(sys.argv[1])
+    except ValueError:
+        error_msg = f"Error: issue-id must be an integer, got: {sys.argv[1]}"
+        if logger:
+            logger.error(error_msg)
+        else:
+            print(error_msg)
+        sys.exit(1)
+
     adw_id = sys.argv[2] if len(sys.argv) > 2 else None
 
-    return issue_path, adw_id
+    return issue_id, adw_id
 
 
 def classify_issue(
-    issue_path: str, adw_id: str, logger: object
+    issue: CapeIssue, adw_id: str, logger: object
 ) -> Tuple[Optional[str], Optional[str]]:
     """Classify issue and return appropriate slash command.
     Returns (command, error_message) tuple."""
-    # Read the issue file contents
-    issue = Path(issue_path).read_text()
-    
     request = AgentTemplateRequest(
         agent_name=AGENT_CLASSIFIER,
         slash_command="/triage:classify",
-        args=[issue],
+        args=[issue.description],
         adw_id=adw_id,
         model="sonnet",
     )
@@ -82,7 +89,7 @@ def classify_issue(
 
     if issue_command not in ["/chore", "/bug", "/feature"]:
         return None, f"Invalid command selected: {response.output}"
-    
+
     # Convert to triage: prefixed command
     issue_command = f"/triage:{issue_command.lstrip('/')}"
 
@@ -90,16 +97,13 @@ def classify_issue(
 
 
 def build_plan(
-    issue_path: str, command: str, adw_id: str, logger: object
+    issue: CapeIssue, command: str, adw_id: str, logger: object
 ) -> AgentPromptResponse:
     """Build implementation plan for the issue using the specified command."""
-    # Read the issue file contents
-    issue = Path(issue_path).read_text()
-
     request = AgentTemplateRequest(
         agent_name=AGENT_PLANNER,
         slash_command=command,
-        args=[issue],
+        args=[issue.description],
         adw_id=adw_id,
         model="sonnet",
     )
@@ -195,23 +199,35 @@ def check_error(
 def main() -> None:
     load_dotenv()
 
-    issue_path, adw_id = parse_args()
+    issue_id, adw_id = parse_args()
     if not adw_id:
         adw_id = make_adw_id()
 
     logger = setup_logger(adw_id, "adw_plan_build")
     logger.info(f"ADW ID: {adw_id}")
-    logger.info(f"Processing issue: {issue_path}")
+    logger.info(f"Processing issue ID: {issue_id}")
+
+    # Fetch issue from Supabase
+    logger.info("\n=== Fetching issue from Supabase ===")
+    try:
+        issue = fetch_issue(issue_id)
+        logger.info(f"Issue fetched: ID={issue.id}, Status={issue.status}")
+    except ValueError as e:
+        logger.error(f"Error fetching issue: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error fetching issue: {e}")
+        sys.exit(1)
 
     # Classify the issue
     logger.info("\n=== Classifying issue ===")
-    issue_command, error = classify_issue(issue_path, adw_id, logger)
+    issue_command, error = classify_issue(issue, adw_id, logger)
     check_error(error, logger, "Error classifying issue")
     logger.info(f"Issue classified as: {issue_command}")
 
     # Build the implementation plan
     logger.info("\n=== Building implementation plan ===")
-    plan_response = build_plan(issue_path, issue_command, adw_id, logger)
+    plan_response = build_plan(issue, issue_command, adw_id, logger)
     check_error(plan_response, logger, "Error building plan")
     logger.info("✅ Implementation plan created")
 
