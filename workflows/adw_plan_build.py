@@ -16,7 +16,7 @@ from data_types import (
 )
 from agent import execute_template
 from utils import make_adw_id, setup_logger
-from supabase import fetch_issue
+from supabase_client import fetch_issue
 
 AGENT_IMPLEMENTOR = "sdlc_implementor"
 AGENT_PLANNER = "sdlc_planner"
