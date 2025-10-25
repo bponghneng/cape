@@ -19,14 +19,23 @@ The repo has evolved sensibly to satisfy smaller-scale ambitions: a collection o
 ## Repository Contents
 
 ```
-CAPE/
-├── agents/                    # Specialized AI agent definitions
+cape/
+├── agents/                   # Specialized AI agent definitions
 │   ├── claude-code/          # Claude Code subagents
 │   └── opencode/             # OpenCode agent definitions
-├── templates/                # Reusable command templates
-│   └── command/              # Commands for AI tools
 ├── ai_docs/                  # AI coding assistant documentation
-└── methodology/              # Optional: Original workflow documentation
+├── commands/                 # Command templates for AI tools
+│   ├── claude-code/          # Commands for Claude Code
+│   ├── opencode/             # Commands for OpenCode
+│   └── roo/                  # Commands for Roo
+├── hooks/                    # Scripts for lifecycle hooks
+│   └── claude-code/          # Hooks for Claude Code
+├── methodology/              # Original workflow documentation
+├── migrations/               # Database migration scripts
+├── scripts/                  # Utility scripts
+├── specs/                    # Specifications for new features
+├── templates/                # Reusable templates
+└── workflows/                # Automated workflow scripts
 ```
 
 ## Available Assets
@@ -60,6 +69,7 @@ Curated reference materials for AI coding tools:
 
 ## Evolution
 
+- **v3.0** (2025-10-25): Add support for scripted workflows with Supabase integration
 - **v2.0** (2025-09-27): Pivot to flexible tooling approach
 - **v1.x** (2025-09): Original structured methodology approach
 
