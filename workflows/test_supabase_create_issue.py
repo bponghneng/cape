@@ -90,7 +90,7 @@ def test_create_issue_trims_description(mock_supabase_client):
 def test_create_issue_database_error(mock_supabase_client):
     """Test that database errors are converted to ValueError with context."""
     # Configure mock to raise APIError
-    api_error = APIError("Database connection failed")
+    api_error = APIError({"message": "Database connection failed"})
     mock_supabase_client.table.return_value.insert.return_value.execute.side_effect = api_error
 
     # Test that ValueError is raised with proper message
@@ -116,7 +116,7 @@ def test_create_issue_empty_response(mock_supabase_client):
 def test_create_issue_logs_error(mock_logger, mock_supabase_client):
     """Test that database errors are logged."""
     # Configure mock to raise APIError
-    api_error = APIError("Database connection failed")
+    api_error = APIError({"message": "Database connection failed"})
     mock_supabase_client.table.return_value.insert.return_value.execute.side_effect = api_error
 
     # Call function and catch exception

@@ -2,7 +2,21 @@
 # /// script
 # dependencies = ["python-dotenv", "pydantic", "supabase"]
 # ///
-"""Task increment workflow driver."""
+"""Task increment workflow driver.
+
+Progress Comments:
+    This workflow automatically inserts progress comments into the Supabase database
+    at four key execution stages. Comment insertion is a best-effort operation -
+    database failures are logged but never halt workflow execution.
+
+    Insertion points:
+    1. After issue fetch: "Workflow started - Issue fetched and validated"
+    2. After classification: "Issue classified as {command}"
+    3. After plan creation: "Implementation plan created successfully"
+    4. After implementation: "Solution implemented successfully"
+
+    Comments are logged at DEBUG level on success, ERROR level on failure.
+"""
 
 import sys
 from typing import Optional, Tuple, Union
@@ -16,12 +30,31 @@ from data_types import (
 )
 from agent import execute_template
 from utils import make_adw_id, setup_logger
-from supabase_client import fetch_issue
+from supabase_client import fetch_issue, create_comment
 
 AGENT_IMPLEMENTOR = "sdlc_implementor"
 AGENT_PLANNER = "sdlc_planner"
 AGENT_CLASSIFIER = "issue_classifier"
 AGENT_PLAN_FINDER = "plan_finder"
+
+
+def insert_progress_comment(issue_id: int, comment_text: str, logger: object) -> None:
+    """Insert a progress comment for the issue.
+
+    This is a best-effort operation - database failures are logged but never halt
+    workflow execution. Successful insertions are logged at DEBUG level, failures
+    at ERROR level.
+
+    Args:
+        issue_id: The Cape issue ID
+        comment_text: The comment text to insert
+        logger: Logger instance for recording outcomes
+    """
+    try:
+        comment = create_comment(issue_id, comment_text)
+        logger.debug(f"Comment inserted: ID={comment.id}, Text='{comment_text}'")
+    except Exception as e:
+        logger.error(f"Failed to insert comment on issue {issue_id}: {e}")
 
 
 def parse_args(logger: Optional[object] = None) -> Tuple[int, Optional[str]]:
@@ -219,17 +252,26 @@ def main() -> None:
         logger.error(f"Unexpected error fetching issue: {e}")
         sys.exit(1)
 
+    # Insert progress comment - best-effort, non-blocking
+    insert_progress_comment(issue_id, "Workflow started - Issue fetched and validated", logger)
+
     # Classify the issue
     logger.info("\n=== Classifying issue ===")
     issue_command, error = classify_issue(issue, adw_id, logger)
     check_error(error, logger, "Error classifying issue")
     logger.info(f"Issue classified as: {issue_command}")
 
+    # Insert progress comment - best-effort, non-blocking
+    insert_progress_comment(issue_id, f"Issue classified as {issue_command}", logger)
+
     # Build the implementation plan
     logger.info("\n=== Building implementation plan ===")
     plan_response = build_plan(issue, issue_command, adw_id, logger)
     check_error(plan_response, logger, "Error building plan")
     logger.info("✅ Implementation plan created")
+
+    # Insert progress comment - best-effort, non-blocking
+    insert_progress_comment(issue_id, "Implementation plan created successfully", logger)
 
     # Get the path to the plan file that was created
     logger.info("\n=== Finding plan file ===")
@@ -242,6 +284,9 @@ def main() -> None:
     implement_response = implement_plan(plan_file_path, adw_id, logger)
     check_error(implement_response, logger, "Error implementing solution")
     logger.info("✅ Solution implemented")
+
+    # Insert progress comment - best-effort, non-blocking
+    insert_progress_comment(issue_id, "Solution implemented successfully", logger)
 
     logger.info("\n=== Workflow completed successfully ===")
 
