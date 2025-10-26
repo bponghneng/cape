@@ -2,7 +2,7 @@
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, List
 from functools import lru_cache
 
 from supabase import create_client, Client
@@ -94,6 +94,35 @@ def fetch_issue(issue_id: int) -> CapeIssue:
         raise ValueError(f"Failed to fetch issue {issue_id}: {e}") from e
 
 
+def fetch_all_issues() -> List[CapeIssue]:
+    """Fetch all issues ordered by creation date (newest first).
+
+    Returns:
+        List of CapeIssue objects. Returns empty list if no issues exist.
+
+    Raises:
+        ValueError: If database operation fails.
+    """
+    client = get_client()
+
+    try:
+        response = (
+            client.table("cape_issues")
+            .select("*")
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        return [CapeIssue.from_supabase(row) for row in response.data]
+
+    except APIError as e:
+        logger.error(f"Database error fetching all issues: {e}")
+        raise ValueError(f"Failed to fetch issues: {e}") from e
+
+
 # ============================================================================
 # Comment Operations
 # ============================================================================
@@ -123,6 +152,39 @@ def create_comment(issue_id: int, text: str) -> CapeComment:
         raise ValueError(
             f"Failed to create comment on issue {issue_id}: {e}"
         ) from e
+
+
+def fetch_comments(issue_id: int) -> List[CapeComment]:
+    """Fetch all comments for an issue in chronological order.
+
+    Args:
+        issue_id: The ID of the issue to fetch comments for.
+
+    Returns:
+        List of CapeComment objects. Returns empty list if no comments exist.
+
+    Raises:
+        ValueError: If database operation fails.
+    """
+    client = get_client()
+
+    try:
+        response = (
+            client.table("cape_comments")
+            .select("*")
+            .eq("issue_id", issue_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        return [CapeComment(**row) for row in response.data]
+
+    except APIError as e:
+        logger.error(f"Database error fetching comments for issue {issue_id}: {e}")
+        raise ValueError(f"Failed to fetch comments for issue {issue_id}: {e}") from e
 
 
 def create_issue(description: str) -> CapeIssue:
