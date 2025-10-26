@@ -74,8 +74,9 @@ A Textual-based Terminal User Interface for managing Cape issues and executing a
 ### Quick Start
 
 ```bash
-cd cape/workflows
-uv run cape_tui.py
+cd cape_cli
+uv sync
+uv run cape
 ```
 
 ### Features
