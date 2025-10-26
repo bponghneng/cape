@@ -99,3 +99,16 @@ class CapeComment(BaseModel):
     def trim_comment(cls, v: str) -> str:
         """Trim whitespace from comment."""
         return v.strip()
+
+
+class WorkflowState(BaseModel):
+    """Workflow state model for background process monitoring."""
+
+    workflow_id: str
+    issue_id: int
+    status: Literal["initializing", "running", "completed", "failed", "stopped"]
+    pid: int
+    started_at: datetime
+    updated_at: datetime
+    current_step: Optional[str] = None
+    error_message: Optional[str] = None
