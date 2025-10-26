@@ -38,7 +38,7 @@ This approach maintains the existing architecture while adding focused improveme
 ## Relevant Files
 
 ### Core TUI Implementation
-**src/cape_cli/tui.py** (505 lines)
+**src/cape-cli/tui.py** (505 lines)
 - Lines 25-131: `IssueListScreen` class with keyboard bindings and issue list display
   - Line 30: BINDINGS list includes `("enter", "view_detail", "View Details")`
   - Lines 92-101: `action_view_detail()` method that handles Enter key press
@@ -52,7 +52,7 @@ This approach maintains the existing architecture while adding focused improveme
   - Need to update to include 'd' for detail view and 'e' for editing
 
 ### Database Operations
-**src/cape_cli/database.py** (228 lines)
+**src/cape-cli/database.py** (228 lines)
 - Lines 74-95: `fetch_issue()` function - retrieves issue by ID
 - Lines 97-124: `fetch_all_issues()` function - retrieves all issues
 - Lines 190-228: `create_issue()` function - creates new issue with validation
@@ -70,7 +70,7 @@ This approach maintains the existing architecture while adding focused improveme
   - Return updated CapeIssue object
 
 ### Workflow Orchestration
-**src/cape_cli/workflow.py** (274 lines)
+**src/cape-cli/workflow.py** (274 lines)
 - Lines 193-274: `execute_workflow()` function - main workflow orchestration
   - Lines 216-227: Issue fetch and validation section
   - After line 227 (after issue fetch): Add call to `update_issue_status(issue_id, "started", logger)`
@@ -79,7 +79,7 @@ This approach maintains the existing architecture while adding focused improveme
   - Need to handle status update failures gracefully (log but don't halt workflow)
 
 ### Data Models
-**src/cape_cli/models.py** (102 lines)
+**src/cape-cli/models.py** (102 lines)
 - Lines 62-87: `CapeIssue` model with status field
   - Line 67: Status is Literal["pending", "started", "completed"]
   - Already has proper validation in place
@@ -291,11 +291,11 @@ Add navigation fixes and editing capabilities to the TUI, completing the user-fa
 
 Execute every command to validate the feature works correctly with zero regressions.
 
-- `cd /Users/bponghneng/git/cape/cape_cli` - Change to project root
+- `cd /Users/bponghneng/git/cape/cape-cli` - Change to project root
 - `pytest tests/test_database.py -v` - Run database tests including new functions
 - `pytest tests/test_workflow.py -v` - Run workflow tests with status integration
 - `pytest tests/ -v` - Run full test suite
-- `pytest tests/ -v --cov=cape_cli --cov-report=term-missing` - Run tests with coverage report
+- `pytest tests/ -v --cov=cape-cli --cov-report=term-missing` - Run tests with coverage report
 - Manual TUI testing:
   - `cape` - Launch TUI
   - Navigate with Enter and 'd' keys to verify both work
