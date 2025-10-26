@@ -225,3 +225,95 @@ def create_issue(description: str) -> CapeIssue:
     except APIError as e:
         logger.error(f"Database error creating issue: {e}")
         raise ValueError(f"Failed to create issue: {e}") from e
+
+
+def update_issue_status(issue_id: int, status: str) -> CapeIssue:
+    """Update the status of an existing issue.
+
+    Args:
+        issue_id: The ID of the issue to update.
+        status: The new status value. Must be one of: "pending", "started", "completed".
+
+    Returns:
+        CapeIssue: The updated issue with new status and updated timestamp.
+
+    Raises:
+        ValueError: If status is invalid, issue not found, or database operation fails.
+    """
+    valid_statuses = ["pending", "started", "completed"]
+    if status not in valid_statuses:
+        raise ValueError(
+            f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
+        )
+
+    client = get_client()
+
+    update_data = {
+        "status": status,
+    }
+
+    try:
+        response = (
+            client.table("cape_issues")
+            .update(update_data)
+            .eq("id", issue_id)
+            .execute()
+        )
+
+        if not response.data:
+            raise ValueError(f"Issue with id {issue_id} not found")
+
+        return CapeIssue(**response.data[0])
+
+    except APIError as e:
+        logger.error(f"Database error updating issue {issue_id} status: {e}")
+        raise ValueError(f"Failed to update issue {issue_id} status: {e}") from e
+
+
+def update_issue_description(issue_id: int, description: str) -> CapeIssue:
+    """Update the description of an existing issue.
+
+    Args:
+        issue_id: The ID of the issue to update.
+        description: The new description text. Will be trimmed of leading/trailing whitespace.
+                    Must be between 10 and 10000 characters after trimming.
+
+    Returns:
+        CapeIssue: The updated issue with new description and updated timestamp.
+
+    Raises:
+        ValueError: If description is invalid, issue not found, or database operation fails.
+    """
+    description_clean = description.strip()
+
+    if not description_clean:
+        raise ValueError("Issue description cannot be empty")
+
+    if len(description_clean) < 10:
+        raise ValueError("Issue description must be at least 10 characters")
+
+    if len(description_clean) > 10000:
+        raise ValueError("Issue description cannot exceed 10000 characters")
+
+    client = get_client()
+
+    update_data = {
+        "description": description_clean,
+    }
+
+    try:
+        response = (
+            client.table("cape_issues")
+            .update(update_data)
+            .eq("id", issue_id)
+            .execute()
+        )
+
+        if not response.data:
+            raise ValueError(f"Issue with id {issue_id} not found")
+
+        return CapeIssue(**response.data[0])
+
+    except APIError as e:
+        logger.error(f"Database error updating issue {issue_id} description: {e}")
+        raise ValueError(f"Failed to update issue {issue_id} description: {e}") from e
