@@ -25,9 +25,14 @@ temp/
 __pycache__
 
 # AI Coder files
-.claude/
-.windsurf/
+.claude
+.opencode
+.roo
+agents/*
+!agents/claude-code
+!agents/opencode
 CLAUDE.md
+GEMINI.md
 WARP.md
 
 # Secret files
