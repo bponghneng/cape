@@ -13,7 +13,7 @@ from textual import work
 from dotenv import load_dotenv
 
 # Import cape_cli modules
-from cape_cli.database import fetch_issue, create_issue as db_create_issue, create_comment, fetch_all_issues, fetch_comments
+from cape_cli.database import fetch_issue, create_issue as db_create_issue, create_comment, fetch_all_issues, fetch_comments, update_issue_description
 from cape_cli.models import CapeIssue, CapeComment
 from cape_cli.utils import make_adw_id, setup_logger
 from cape_cli import workflow
@@ -28,6 +28,7 @@ class IssueListScreen(Screen):
     BINDINGS = [
         ("n", "new_issue", "New Issue"),
         ("enter", "view_detail", "View Details"),
+        ("d", "view_detail", "View Details"),
         ("r", "run_workflow", "Run Workflow"),
         ("q", "quit", "Quit"),
         ("?", "help", "Help"),
@@ -199,11 +200,87 @@ class CreateIssueScreen(ModalScreen[Optional[int]]):
         self.dismiss(None)
 
 
+class EditDescriptionScreen(ModalScreen[bool]):
+    """Modal form for editing issue description."""
+
+    BINDINGS = [
+        ("ctrl+s", "save", "Save"),
+        ("escape", "cancel", "Cancel"),
+    ]
+
+    def __init__(self, issue_id: int, current_description: str):
+        """Initialize with issue ID and current description."""
+        super().__init__()
+        self.issue_id = issue_id
+        self.current_description = current_description
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the edit description modal."""
+        yield Container(
+            Static(f"Edit Issue #{self.issue_id} Description", id="modal-header"),
+            TextArea(id="description", language="markdown"),
+            Horizontal(
+                Button("Save", variant="success", id="save-btn"),
+                Button("Cancel", variant="error", id="cancel-btn"),
+                id="button-row"
+            ),
+            id="edit-description-modal"
+        )
+
+    def on_mount(self) -> None:
+        """Initialize the modal when mounted."""
+        text_area = self.query_one(TextArea)
+        text_area.text = self.current_description
+        text_area.focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "save-btn":
+            self.action_save()
+        elif event.button.id == "cancel-btn":
+            self.action_cancel()
+
+    def action_save(self) -> None:
+        """Save the updated description."""
+        text_area = self.query_one(TextArea)
+        description = text_area.text.strip()
+
+        # Validation
+        if not description:
+            self.notify("Description cannot be empty", severity="warning")
+            return
+
+        if len(description) < 10:
+            self.notify("Description must be at least 10 characters", severity="warning")
+            return
+
+        if len(description) > 10000:
+            self.notify("Description cannot exceed 10,000 characters", severity="warning")
+            return
+
+        # Update issue in background
+        self.update_description_handler(description)
+
+    @work(exclusive=True, thread=True)
+    def update_description_handler(self, description: str) -> None:
+        """Update issue description in background thread."""
+        try:
+            update_issue_description(self.issue_id, description)
+            self.app.call_from_thread(self.dismiss, True)
+        except Exception as e:
+            self.app.call_from_thread(self.notify, f"Error updating description: {e}", severity="error")
+
+    def action_cancel(self) -> None:
+        """Cancel and close the modal."""
+        self.dismiss(False)
+
+
 class IssueDetailScreen(Screen):
     """Screen showing issue details and comments."""
 
     BINDINGS = [
         ("escape", "back", "Back"),
+        ("e", "edit_description", "Edit Description"),
         ("r", "run_workflow", "Run Workflow"),
     ]
 
@@ -245,6 +322,10 @@ class IssueDetailScreen(Screen):
 
     def _display_data(self, issue: CapeIssue, comments: List[CapeComment]) -> None:
         """Display issue and comments data."""
+        # Store issue for later use
+        self.issue = issue
+        self.comments = comments
+
         # Display issue details
         status_color = {
             "pending": "yellow",
@@ -279,9 +360,30 @@ Updated: {updated}
         """Return to issue list."""
         self.app.pop_screen()
 
+    def action_edit_description(self) -> None:
+        """Edit the issue description if status is pending."""
+        if self.issue is None:
+            self.notify("Issue not loaded yet", severity="warning")
+            return
+
+        if self.issue.status != "pending":
+            self.notify(
+                "Only pending issues can be edited. This issue is already started or completed.",
+                severity="warning"
+            )
+            return
+
+        self.app.push_screen(EditDescriptionScreen(self.issue_id, self.issue.description), self.on_description_updated)
+
     def action_run_workflow(self) -> None:
         """Run workflow for this issue."""
         self.app.push_screen(WorkflowScreen(self.issue_id), self.on_workflow_complete)
+
+    def on_description_updated(self, updated: bool) -> None:
+        """Callback after description edit."""
+        if updated:
+            self.notify("Issue description updated", severity="information")
+            self.load_data()
 
     def on_workflow_complete(self) -> None:
         """Callback after workflow completion."""
@@ -327,50 +429,30 @@ class WorkflowScreen(Screen):
 
     @work(exclusive=True, thread=True)
     def run_workflow(self) -> None:
-        """Execute workflow stages sequentially in background thread."""
+        """Execute workflow using the centralized execute_workflow function."""
         logger = setup_logger(self.adw_id, "tui_workflow")
 
         try:
-            # Stage 1: Fetch issue
-            self.app.call_from_thread(self._update_progress, "Fetching issue...")
-            self.app.call_from_thread(self._log, "Fetching issue from database...")
-            issue = fetch_issue(self.issue_id)
-            self.app.call_from_thread(self._log, f"Issue #{issue.id} loaded: {issue.description[:50]}...")
+            # Update UI to show workflow is running
+            self.app.call_from_thread(self._update_progress, "Running workflow...")
+            self.app.call_from_thread(self._log, f"Starting workflow for issue #{self.issue_id}")
+            self.app.call_from_thread(self._log, f"ADW ID: {self.adw_id}")
+            self.app.call_from_thread(self._log, "See detailed logs in agents/{adw_id}/tui_workflow/execution.log")
 
-            # Stage 2: Classify issue
-            self.app.call_from_thread(self._update_progress, "Classifying issue...")
-            self.app.call_from_thread(self._log, "Classifying issue type...")
-            command, error = workflow.classify_issue(issue, self.adw_id, logger)
-            if error:
-                raise ValueError(f"Classification failed: {error}")
-            self.app.call_from_thread(self._log, f"Issue classified as: {command}")
+            # Execute the complete workflow
+            # This handles: fetch, classify, plan, find plan file, implement
+            # It also saves progress comments and updates issue status
+            success = workflow.execute_workflow(self.issue_id, self.adw_id, logger)
 
-            # Stage 3: Build plan
-            self.app.call_from_thread(self._update_progress, "Building plan...")
-            self.app.call_from_thread(self._log, "Generating implementation plan...")
-            plan_response = workflow.build_plan(issue, command, self.adw_id, logger)
-            if not plan_response.success:
-                raise ValueError("Plan generation failed")
-            self.app.call_from_thread(self._log, "Plan generated successfully")
+            if success:
+                # Success
+                self.app.call_from_thread(self._update_progress, "✅ Workflow completed successfully!")
+                self.app.call_from_thread(self._log, "✅ Workflow completed successfully!")
+                self.app.call_from_thread(self._log, "Check issue details to see progress comments")
+            else:
+                # Workflow returned False (check logs for details)
+                raise ValueError("Workflow execution failed - check logs for details")
 
-            # Stage 4: Get plan file
-            self.app.call_from_thread(self._update_progress, "Finding plan file...")
-            self.app.call_from_thread(self._log, "Locating plan file...")
-            plan_file, error = workflow.get_plan_file(plan_response.output, self.adw_id, logger)
-            if error:
-                raise ValueError(f"Failed to find plan file: {error}")
-            self.app.call_from_thread(self._log, f"Plan file: {plan_file}")
-
-            # Stage 5: Implement plan
-            self.app.call_from_thread(self._update_progress, "Implementing solution...")
-            self.app.call_from_thread(self._log, "Executing implementation...")
-            impl_response = workflow.implement_plan(plan_file, self.adw_id, logger)
-            if not impl_response.success:
-                raise ValueError("Implementation failed")
-
-            # Success
-            self.app.call_from_thread(self._update_progress, "✅ Workflow completed successfully!")
-            self.app.call_from_thread(self._log, "✅ Workflow completed successfully!")
             self.app.call_from_thread(self._enable_exit)
 
         except Exception as e:
@@ -416,7 +498,7 @@ class HelpScreen(ModalScreen):
 
 ### Issue List
 - **n**: Create new issue
-- **Enter**: View issue details
+- **Enter/d**: View issue details
 - **r**: Run workflow on selected issue
 - **q**: Quit application
 - **?**: Show this help screen
@@ -425,7 +507,12 @@ class HelpScreen(ModalScreen):
 - **Ctrl+S**: Save issue
 - **Escape**: Cancel
 
+### Edit Description
+- **Ctrl+S**: Save changes
+- **Escape**: Cancel
+
 ### Issue Detail
+- **e**: Edit description (pending issues only)
 - **r**: Run workflow
 - **Escape**: Back to list
 
