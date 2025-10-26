@@ -21,6 +21,9 @@ Thumbs.db
 tmp/
 temp/
 
+# Python caches
+__pycache__
+
 # AI Coder files
 .claude/
 .windsurf/
