@@ -73,6 +73,9 @@ SYMLINK_CONFIG = [
     SymlinkMapping(
         "commands/opencode", ".opencode/command", "*.md", "Commands", recursive=True
     ),
+    SymlinkMapping(
+        "commands/codex", ".codex/prompts", "*.md", "Prompts", recursive=True
+    ),
 ]
 
 # AI documentation mapping (conditionally included)
