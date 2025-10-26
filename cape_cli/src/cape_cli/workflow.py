@@ -9,13 +9,32 @@ from cape_cli.models import (
     CapeIssue,
 )
 from cape_cli.agent import execute_template
-from cape_cli.database import fetch_issue, create_comment
+from cape_cli.database import fetch_issue, create_comment, update_issue_status
 
 # Agent names
 AGENT_IMPLEMENTOR = "sdlc_implementor"
 AGENT_PLANNER = "sdlc_planner"
 AGENT_CLASSIFIER = "issue_classifier"
 AGENT_PLAN_FINDER = "plan_finder"
+
+
+def update_status(issue_id: int, status: str, logger: Logger) -> None:
+    """Update the status of an issue.
+
+    This is a best-effort operation - database failures are logged but never halt
+    workflow execution. Successful updates are logged at DEBUG level, failures
+    at ERROR level.
+
+    Args:
+        issue_id: The Cape issue ID
+        status: The new status value ("pending", "started", or "completed")
+        logger: Logger instance
+    """
+    try:
+        update_issue_status(issue_id, status)
+        logger.debug(f"Issue {issue_id} status updated to '{status}'")
+    except Exception as e:
+        logger.error(f"Failed to update issue {issue_id} status to '{status}': {e}")
 
 
 def insert_progress_comment(issue_id: int, comment_text: str, logger: Logger) -> None:
@@ -225,6 +244,9 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
         logger.error(f"Unexpected error fetching issue: {e}")
         return False
 
+    # Update status to "started" - best-effort, non-blocking
+    update_status(issue_id, "started", logger)
+
     # Insert progress comment - best-effort, non-blocking
     insert_progress_comment(issue_id, "Workflow started - Issue fetched and validated", logger)
 
@@ -265,6 +287,9 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
         logger.error(f"Error implementing solution: {implement_response.output}")
         return False
     logger.info(" Solution implemented")
+
+    # Update status to "completed" - best-effort, non-blocking
+    update_status(issue_id, "completed", logger)
 
     # Insert progress comment - best-effort, non-blocking
     insert_progress_comment(issue_id, "Solution implemented successfully", logger)

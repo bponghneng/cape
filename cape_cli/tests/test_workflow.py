@@ -9,6 +9,7 @@ from cape_cli.workflow import (
     get_plan_file,
     implement_plan,
     insert_progress_comment,
+    update_status,
     execute_workflow,
 )
 from cape_cli.models import CapeIssue, AgentPromptResponse
@@ -28,6 +29,27 @@ def sample_issue():
         description="Fix login bug",
         status="pending"
     )
+
+
+@patch("cape_cli.workflow.update_issue_status")
+def test_update_status_success(mock_update_issue_status, mock_logger):
+    """Test successful status update."""
+    mock_issue = Mock()
+    mock_issue.id = 1
+    mock_update_issue_status.return_value = mock_issue
+
+    update_status(1, "started", mock_logger)
+    mock_logger.debug.assert_called_once()
+    mock_update_issue_status.assert_called_once_with(1, "started")
+
+
+@patch("cape_cli.workflow.update_issue_status")
+def test_update_status_failure(mock_update_issue_status, mock_logger):
+    """Test status update handles errors gracefully."""
+    mock_update_issue_status.side_effect = Exception("Database error")
+
+    update_status(1, "started", mock_logger)
+    mock_logger.error.assert_called_once()
 
 
 @patch("cape_cli.workflow.create_comment")
@@ -154,7 +176,9 @@ def test_implement_plan_success(mock_execute, mock_logger):
 @patch("cape_cli.workflow.get_plan_file")
 @patch("cape_cli.workflow.implement_plan")
 @patch("cape_cli.workflow.insert_progress_comment")
+@patch("cape_cli.workflow.update_status")
 def test_execute_workflow_success(
+    mock_update_status,
     mock_insert_comment,
     mock_implement,
     mock_get_file,
@@ -178,6 +202,9 @@ def test_execute_workflow_success(
     result = execute_workflow(1, "adw123", mock_logger)
     assert result is True
     assert mock_insert_comment.call_count == 4  # 4 progress comments
+    assert mock_update_status.call_count == 2  # status updated to "started" and "completed"
+    mock_update_status.assert_any_call(1, "started", mock_logger)
+    mock_update_status.assert_any_call(1, "completed", mock_logger)
 
 
 @patch("cape_cli.workflow.fetch_issue")
