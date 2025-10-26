@@ -6,7 +6,7 @@ from datetime import datetime
 
 from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, Footer, DataTable, TextArea, Button, Static, RichLog
+from textual.widgets import Header, Footer, DataTable, TextArea, Button, Static, RichLog, Collapsible
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.timer import Timer
@@ -34,11 +34,13 @@ class IssueListScreen(Screen):
         ("enter", "view_detail", "View Details"),
         ("d", "view_detail", "View Details"),
         ("r", "run_workflow", "Run Workflow"),
+        ("w", "view_workflows", "View Workflows"),
         ("q", "quit", "Quit"),
         ("?", "help", "Help"),
     ]
 
     loading: reactive[bool] = reactive(False)
+    status_timer: Optional[Timer] = None
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the issue list screen."""
@@ -56,6 +58,13 @@ class IssueListScreen(Screen):
         table.add_column("Status", width=12)
         table.add_column("Created", width=18)
         self.load_issues()
+        # Refresh workflow indicators every 5 seconds
+        self.status_timer = self.set_interval(5, self.load_issues)
+
+    def on_unmount(self) -> None:
+        """Clean up when screen is unmounted."""
+        if self.status_timer:
+            self.status_timer.stop()
 
     @work(exclusive=True, thread=True)
     def load_issues(self) -> None:
@@ -68,12 +77,25 @@ class IssueListScreen(Screen):
 
     def _populate_table(self, issues: List[CapeIssue]) -> None:
         """Populate the DataTable with issue data."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
         table = self.query_one(DataTable)
         table.clear()
 
         if not issues:
             self.notify("No issues found. Press 'n' to create one.", severity="information")
             return
+
+        # Get all active workflows for status indicators
+        try:
+            all_workflows = WorkflowMonitor.list_active_workflows()
+            workflows_by_issue = {}
+            for wf in all_workflows:
+                if wf.issue_id not in workflows_by_issue:
+                    workflows_by_issue[wf.issue_id] = []
+                workflows_by_issue[wf.issue_id].append(wf)
+        except Exception:
+            workflows_by_issue = {}
 
         for issue in issues:
             # Truncate description to 60 characters
@@ -82,10 +104,23 @@ class IssueListScreen(Screen):
             # Format timestamp
             created = issue.created_at.strftime("%Y-%m-%d %H:%M") if issue.created_at else "Unknown"
 
+            # Add workflow status indicator
+            status_indicator = ""
+            if issue.id in workflows_by_issue:
+                workflows = workflows_by_issue[issue.id]
+                # Check for different workflow states
+                has_running = any(w.status in ["initializing", "running"] for w in workflows)
+                has_failed = any(w.status == "failed" for w in workflows)
+
+                if has_running:
+                    status_indicator = " ⏳"  # Running workflow
+                elif has_failed:
+                    status_indicator = " ❌"  # Failed workflow
+
             table.add_row(
                 str(issue.id),
                 desc,
-                issue.status,
+                issue.status + status_indicator,
                 created,
                 key=str(issue.id)
             )
@@ -115,6 +150,10 @@ class IssueListScreen(Screen):
         row_key = table.get_row_at(table.cursor_row)
         issue_id = int(row_key[0])
         self.app.push_screen(WorkflowScreen(issue_id), self.on_workflow_complete)
+
+    def action_view_workflows(self) -> None:
+        """View all active workflows."""
+        self.app.push_screen(WorkflowsScreen())
 
     def action_help(self) -> None:
         """Show help screen."""
@@ -286,6 +325,8 @@ class IssueDetailScreen(Screen):
         ("escape", "back", "Back"),
         ("e", "edit_description", "Edit Description"),
         ("r", "run_workflow", "Run Workflow"),
+        ("w", "view_workflows", "View Workflows"),
+        ("s", "stop_workflow", "Stop Active Workflow"),
     ]
 
     issue_id: int
@@ -294,6 +335,7 @@ class IssueDetailScreen(Screen):
     loading: reactive[bool] = reactive(False)
     auto_refresh_active: reactive[bool] = reactive(False)
     refresh_timer: Optional[Timer] = None
+    workflow_timer: Optional[Timer] = None
 
     def __init__(self, issue_id: int):
         """Initialize with issue ID."""
@@ -306,6 +348,8 @@ class IssueDetailScreen(Screen):
         yield Vertical(
             Static("Issue Details", id="detail-header"),
             Static("Loading...", id="issue-content"),
+            Static("Active Workflows", id="workflows-header"),
+            Static("No active workflows", id="workflows-content"),
             Static("Comments", id="comments-header"),
             RichLog(id="comments-log"),
             id="detail-container"
@@ -316,6 +360,8 @@ class IssueDetailScreen(Screen):
         """Initialize the screen when mounted."""
         # Create a paused timer for auto-refresh (will be activated if issue status is "started")
         self.refresh_timer = self.set_interval(10, lambda: self.load_data(is_refresh=True), pause=True, name="comment_refresh")
+        # Create timer for workflow status updates
+        self.workflow_timer = self.set_interval(5, self.update_workflows_display, name="workflow_refresh")
         # Initial data load
         self.load_data()
 
@@ -325,6 +371,9 @@ class IssueDetailScreen(Screen):
         if self.refresh_timer is not None:
             self.refresh_timer.stop()
             self.auto_refresh_active = False
+        # Stop the workflow timer
+        if self.workflow_timer is not None:
+            self.workflow_timer.stop()
 
     @work(exclusive=True, thread=True)
     def load_data(self, is_refresh: bool = False) -> None:
@@ -392,7 +441,16 @@ class IssueDetailScreen(Screen):
         created = issue.created_at.strftime("%Y-%m-%d %H:%M") if issue.created_at else "Unknown"
         updated = issue.updated_at.strftime("%Y-%m-%d %H:%M") if issue.updated_at else "Unknown"
 
-        content = f"""[bold]Issue #{issue.id}[/bold]
+        # Check for active workflows
+        from cape_cli.workflow_monitor import WorkflowMonitor
+        try:
+            all_workflows = WorkflowMonitor.list_active_workflows()
+            issue_workflows = [w for w in all_workflows if w.issue_id == issue.id]
+            workflow_indicator = " 🟢" if issue_workflows else ""
+        except Exception:
+            workflow_indicator = ""
+
+        content = f"""[bold]Issue #{issue.id}{workflow_indicator}[/bold]
 Status: [{status_color}]{issue.status}[/{status_color}]
 Created: {created}
 Updated: {updated}
@@ -429,6 +487,91 @@ Updated: {updated}
                     self.auto_refresh_active = False
                     self.refresh_timer.pause()
                     logger.info(f"Auto-refresh deactivated for issue {self.issue_id}")
+
+    def update_workflows_display(self) -> None:
+        """Update the display of active workflows for this issue."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        try:
+            # Get all active workflows
+            all_workflows = WorkflowMonitor.list_active_workflows()
+
+            # Filter for this issue
+            issue_workflows = [w for w in all_workflows if w.issue_id == self.issue_id]
+
+            if not issue_workflows:
+                workflows_content = "[dim]No active workflows[/dim]"
+            else:
+                workflows_parts = []
+                for wf in issue_workflows:
+                    elapsed = datetime.now() - wf.started_at
+                    elapsed_str = str(elapsed).split('.')[0]  # HH:MM:SS
+
+                    status_color = {
+                        "initializing": "yellow",
+                        "running": "blue",
+                        "completed": "green",
+                        "failed": "red",
+                        "stopped": "dim"
+                    }.get(wf.status, "white")
+
+                    step_info = f" - {wf.current_step}" if wf.current_step else ""
+
+                    workflows_parts.append(
+                        f"🔄 [{status_color}]{wf.status}[/{status_color}]{step_info} "
+                        f"[dim]({elapsed_str}) - ID: {wf.workflow_id[:8]}...[/dim]"
+                    )
+
+                workflows_content = "\n".join(workflows_parts)
+
+            self.query_one("#workflows-content", Static).update(workflows_content)
+
+        except Exception as e:
+            logger.warning(f"Error updating workflows display: {e}")
+
+    def action_view_workflows(self) -> None:
+        """View all workflows for this issue."""
+        # For now, just show a notification
+        # This could be expanded to show a detailed modal
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        all_workflows = WorkflowMonitor.list_active_workflows()
+        issue_workflows = [w for w in all_workflows if w.issue_id == self.issue_id]
+
+        if not issue_workflows:
+            self.notify("No active workflows for this issue", severity="information")
+        else:
+            count = len(issue_workflows)
+            self.notify(f"Found {count} active workflow(s) - see 'Active Workflows' section above", severity="information")
+
+    def action_stop_workflow(self) -> None:
+        """Stop the most recent active workflow for this issue."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+        from cape_cli.workflow_launcher import WorkflowLauncher
+
+        # Get all active workflows for this issue
+        all_workflows = WorkflowMonitor.list_active_workflows()
+        issue_workflows = [w for w in all_workflows if w.issue_id == self.issue_id]
+
+        if not issue_workflows:
+            self.notify("No active workflows to stop", severity="warning")
+            return
+
+        # Stop the most recent one
+        workflow = issue_workflows[-1]
+
+        try:
+            self.notify(f"Stopping workflow {workflow.workflow_id[:8]}...", severity="information")
+            success = WorkflowLauncher.stop_workflow(workflow.workflow_id, timeout=30)
+
+            if success:
+                self.notify("Workflow stopped successfully", severity="information")
+            else:
+                self.notify("Failed to stop workflow", severity="warning")
+
+        except Exception as e:
+            logger.error(f"Error stopping workflow: {e}")
+            self.notify(f"Error stopping workflow: {e}", severity="error")
 
     def action_back(self) -> None:
         """Return to issue list."""
@@ -468,13 +611,15 @@ class WorkflowScreen(Screen):
     """Screen for running and monitoring workflows."""
 
     BINDINGS = [
-        ("escape", "back", "Back (after completion)"),
+        ("escape", "back", "Back"),
+        ("s", "stop_workflow", "Stop Workflow"),
     ]
 
     issue_id: int
     adw_id: str
+    workflow_id: Optional[str] = None
     progress: reactive[str] = reactive("Initializing...")
-    can_exit: reactive[bool] = reactive(False)
+    status_timer: Optional[Timer] = None
 
     def __init__(self, issue_id: int):
         """Initialize with issue ID."""
@@ -489,52 +634,125 @@ class WorkflowScreen(Screen):
             Static(f"Workflow Execution - Issue #{self.issue_id}", id="workflow-title"),
             Static("Initializing...", id="workflow-progress"),
             RichLog(id="workflow-log", classes="log"),
+            Horizontal(
+                Button("Stop Workflow", variant="error", id="stop-btn"),
+                id="workflow-buttons"
+            ),
             id="workflow-container"
         )
         yield Footer()
 
     def on_mount(self) -> None:
         """Initialize the screen when mounted."""
-        self.run_workflow()
+        self.launch_workflow()
+        # Poll workflow status every 2 seconds
+        self.status_timer = self.set_interval(2, self.update_workflow_status)
+
+    def on_unmount(self) -> None:
+        """Clean up when screen is unmounted."""
+        if self.status_timer:
+            self.status_timer.stop()
+
+    def launch_workflow(self) -> None:
+        """Launch workflow as detached background process."""
+        from cape_cli.workflow_launcher import WorkflowLauncher
+
+        try:
+            self._log(f"Launching workflow for issue #{self.issue_id}")
+            self._log(f"Workflow ID: {self.adw_id}")
+
+            # Launch the workflow
+            workflow_id = WorkflowLauncher.launch_workflow(self.issue_id, self.adw_id)
+            self.workflow_id = workflow_id
+
+            self._update_progress("Workflow launched - running in background...")
+            self._log("✅ Workflow launched successfully")
+            self._log("You can close this screen - the workflow will continue running")
+            self._log("Press 'Escape' to return, or 's' to stop the workflow")
+
+        except Exception as e:
+            logger.error(f"Failed to launch workflow: {e}")
+            self._update_progress(f"❌ Launch failed: {e}")
+            self._log(f"❌ Error: {e}")
+            self.notify(f"Failed to launch workflow: {e}", severity="error")
+
+    def update_workflow_status(self) -> None:
+        """Poll workflow status and update UI."""
+        if not self.workflow_id:
+            return
+
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        try:
+            # Get workflow progress
+            progress = WorkflowMonitor.get_workflow_progress(self.workflow_id)
+
+            if not progress:
+                return
+
+            # Update progress message
+            status = progress["status"]
+            current_step = progress["current_step"] or "waiting"
+            elapsed = progress["elapsed_str"]
+
+            if status == "completed":
+                self._update_progress(f"✅ Completed in {elapsed}")
+                self._log(f"✅ Workflow completed successfully after {elapsed}")
+                if self.status_timer:
+                    self.status_timer.stop()
+            elif status == "failed":
+                error_msg = progress.get("error_message", "Unknown error")
+                self._update_progress(f"❌ Failed: {error_msg}")
+                self._log(f"❌ Workflow failed: {error_msg}")
+                if self.status_timer:
+                    self.status_timer.stop()
+            elif status == "stopped":
+                self._update_progress(f"⏹ Stopped by user after {elapsed}")
+                self._log(f"⏹ Workflow stopped after {elapsed}")
+                if self.status_timer:
+                    self.status_timer.stop()
+            else:
+                # Running or initializing
+                self._update_progress(f"⏳ {status.capitalize()}: {current_step} ({elapsed})")
+
+        except Exception as e:
+            logger.warning(f"Error updating workflow status: {e}")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "stop-btn":
+            self.action_stop_workflow()
+
+    def action_stop_workflow(self) -> None:
+        """Stop the running workflow."""
+        if not self.workflow_id:
+            self.notify("No workflow running", severity="warning")
+            return
+
+        from cape_cli.workflow_launcher import WorkflowLauncher
+
+        try:
+            self._log("Sending stop signal to workflow...")
+            self._update_progress("Stopping workflow...")
+
+            success = WorkflowLauncher.stop_workflow(self.workflow_id, timeout=30)
+
+            if success:
+                self._log("✅ Workflow stopped successfully")
+                self._update_progress("⏹ Workflow stopped")
+                self.notify("Workflow stopped", severity="information")
+            else:
+                self._log("❌ Failed to stop workflow (may have already completed)")
+                self.notify("Failed to stop workflow", severity="warning")
+
+        except Exception as e:
+            logger.error(f"Error stopping workflow: {e}")
+            self._log(f"❌ Error stopping workflow: {e}")
+            self.notify(f"Error stopping workflow: {e}", severity="error")
 
     def watch_progress(self, progress: str) -> None:
         """Update progress display when progress changes."""
         self.query_one("#workflow-progress", Static).update(progress)
-
-    @work(exclusive=True, thread=True)
-    def run_workflow(self) -> None:
-        """Execute workflow using the centralized execute_workflow function."""
-        logger = setup_logger(self.adw_id, "tui_workflow")
-
-        try:
-            # Update UI to show workflow is running
-            self.app.call_from_thread(self._update_progress, "Running workflow...")
-            self.app.call_from_thread(self._log, f"Starting workflow for issue #{self.issue_id}")
-            self.app.call_from_thread(self._log, f"ADW ID: {self.adw_id}")
-            self.app.call_from_thread(self._log, "See detailed logs in agents/{adw_id}/tui_workflow/execution.log")
-
-            # Execute the complete workflow
-            # This handles: fetch, classify, plan, find plan file, implement
-            # It also saves progress comments and updates issue status
-            success = workflow.execute_workflow(self.issue_id, self.adw_id, logger)
-
-            if success:
-                # Success
-                self.app.call_from_thread(self._update_progress, "✅ Workflow completed successfully!")
-                self.app.call_from_thread(self._log, "✅ Workflow completed successfully!")
-                self.app.call_from_thread(self._log, "Check issue details to see progress comments")
-            else:
-                # Workflow returned False (check logs for details)
-                raise ValueError("Workflow execution failed - check logs for details")
-
-            self.app.call_from_thread(self._enable_exit)
-
-        except Exception as e:
-            logger.error(f"Workflow error: {e}")
-            self.app.call_from_thread(self._update_progress, f"❌ Failed: {e}")
-            self.app.call_from_thread(self._log, f"❌ Error: {e}")
-            self.app.call_from_thread(self.notify, f"Workflow failed: {e}", severity="error")
-            self.app.call_from_thread(self._enable_exit)
 
     def _update_progress(self, message: str) -> None:
         """Update progress message."""
@@ -545,16 +763,286 @@ class WorkflowScreen(Screen):
         log = self.query_one(RichLog)
         log.write(message)
 
-    def _enable_exit(self) -> None:
-        """Enable exiting the workflow screen."""
-        self.can_exit = True
+    def action_back(self) -> None:
+        """Return to previous screen."""
+        # Can exit immediately - workflow continues in background
+        self.app.pop_screen()
+
+
+class WorkflowLogsModal(ModalScreen):
+    """Modal showing workflow logs."""
+
+    BINDINGS = [
+        ("escape", "close", "Close"),
+    ]
+
+    def __init__(self, workflow_id: str):
+        """Initialize with workflow ID."""
+        super().__init__()
+        self.workflow_id = workflow_id
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the modal."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        logs = WorkflowMonitor.get_workflow_logs(self.workflow_id, lines=100)
+
+        if logs:
+            log_content = "".join(logs)
+        else:
+            log_content = "No logs available for this workflow"
+
+        yield Container(
+            Static(f"Workflow Logs - {self.workflow_id[:16]}...", id="logs-modal-header"),
+            RichLog(id="logs-modal-content"),
+            id="logs-modal"
+        )
+
+    def on_mount(self) -> None:
+        """Populate logs when mounted."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        logs = WorkflowMonitor.get_workflow_logs(self.workflow_id, lines=100)
+        log_widget = self.query_one(RichLog)
+
+        if logs:
+            for line in logs:
+                log_widget.write(line.rstrip())
+        else:
+            log_widget.write("No logs available for this workflow")
+
+    def action_close(self) -> None:
+        """Close the modal."""
+        self.dismiss()
+
+
+class WorkflowDetailModal(ModalScreen):
+    """Modal showing detailed workflow information."""
+
+    BINDINGS = [
+        ("escape", "close", "Close"),
+    ]
+
+    def __init__(self, workflow_id: str):
+        """Initialize with workflow ID."""
+        super().__init__()
+        self.workflow_id = workflow_id
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the modal."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        state = WorkflowMonitor.get_workflow_status(self.workflow_id, use_cache=False)
+
+        if not state:
+            detail_text = f"Workflow {self.workflow_id} not found"
+        else:
+            elapsed = datetime.now() - state.started_at
+            elapsed_str = str(elapsed).split('.')[0]
+
+            detail_text = f"""# Workflow Details
+
+**Workflow ID:** {state.workflow_id}
+**Issue ID:** #{state.issue_id}
+**Status:** {state.status}
+**Current Step:** {state.current_step or "N/A"}
+**Started:** {state.started_at.strftime("%Y-%m-%d %H:%M:%S")}
+**Elapsed Time:** {elapsed_str}
+**PID:** {state.pid}
+
+"""
+            if state.error_message:
+                detail_text += f"**Error:** {state.error_message}\n\n"
+
+            # Get recent logs
+            logs = WorkflowMonitor.get_workflow_logs(self.workflow_id, lines=20)
+            if logs:
+                detail_text += "## Recent Logs\n\n```\n"
+                detail_text += "".join(logs)
+                detail_text += "```"
+            else:
+                detail_text += "## Recent Logs\n\nNo logs available"
+
+        yield Container(
+            Static(detail_text, id="workflow-detail-content"),
+            id="workflow-detail-modal"
+        )
+
+    def action_close(self) -> None:
+        """Close the modal."""
+        self.dismiss()
+
+
+class WorkflowsScreen(Screen):
+    """Screen showing all active workflows in a table."""
+
+    BINDINGS = [
+        ("escape", "back", "Back"),
+        ("enter", "view_detail", "View Details"),
+        ("s", "stop_workflow", "Stop Workflow"),
+        ("l", "view_logs", "View Logs"),
+        ("r", "refresh", "Refresh"),
+    ]
+
+    refresh_timer: Optional[Timer] = None
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the workflows screen."""
+        yield Header()
+        yield Static("Active Workflows", id="workflows-title")
+        yield DataTable(id="workflows-table")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        """Initialize the screen when mounted."""
+        table = self.query_one(DataTable)
+        table.cursor_type = "row"
+        table.add_column("Workflow ID", width=20)
+        table.add_column("Issue ID", width=10)
+        table.add_column("Status", width=15)
+        table.add_column("Step", width=20)
+        table.add_column("Elapsed", width=12)
+        self.load_workflows()
+        # Auto-refresh every 3 seconds
+        self.refresh_timer = self.set_interval(3, self.load_workflows)
+
+    def on_unmount(self) -> None:
+        """Clean up when screen is unmounted."""
+        if self.refresh_timer:
+            self.refresh_timer.stop()
+
+    def load_workflows(self) -> None:
+        """Load workflows into the table."""
+        from cape_cli.workflow_monitor import WorkflowMonitor
+
+        try:
+            workflows = WorkflowMonitor.list_active_workflows()
+            self._populate_table(workflows)
+        except Exception as e:
+            logger.error(f"Error loading workflows: {e}")
+            self.notify(f"Error loading workflows: {e}", severity="error")
+
+    def _populate_table(self, workflows: List) -> None:
+        """Populate the DataTable with workflow data."""
+        table = self.query_one(DataTable)
+        table.clear()
+
+        if not workflows:
+            # Don't show notification on refresh - empty table is self-explanatory
+            return
+
+        for wf in workflows:
+            elapsed = datetime.now() - wf.started_at
+            elapsed_str = str(elapsed).split('.')[0]
+
+            # Truncate workflow ID for display
+            wf_id_display = wf.workflow_id[:18] + "..." if len(wf.workflow_id) > 20 else wf.workflow_id
+
+            table.add_row(
+                wf_id_display,
+                str(wf.issue_id),
+                wf.status,
+                wf.current_step or "N/A",
+                elapsed_str,
+                key=wf.workflow_id
+            )
+
+    def action_refresh(self) -> None:
+        """Manually refresh the workflows."""
+        self.load_workflows()
+        self.notify("Workflows refreshed", severity="information")
+
+    def action_view_detail(self) -> None:
+        """View details for selected workflow."""
+        table = self.query_one(DataTable)
+
+        # Check if table has any rows
+        if table.row_count == 0:
+            self.notify("No workflows available", severity="warning")
+            return
+
+        if table.cursor_row is None or table.cursor_row < 0:
+            self.notify("No workflow selected", severity="warning")
+            return
+
+        try:
+            workflow_id = table.get_row_key_for_row(table.cursor_row)
+
+            if workflow_id is None:
+                self.notify("Invalid workflow selected", severity="warning")
+                return
+
+            self.app.push_screen(WorkflowDetailModal(str(workflow_id)))
+
+        except Exception as e:
+            logger.error(f"Error viewing workflow details: {e}")
+            self.notify(f"Error viewing details: {e}", severity="error")
+
+    def action_stop_workflow(self) -> None:
+        """Stop selected workflow."""
+        table = self.query_one(DataTable)
+
+        # Check if table has any rows
+        if table.row_count == 0:
+            self.notify("No workflows available", severity="warning")
+            return
+
+        if table.cursor_row is None or table.cursor_row < 0:
+            self.notify("No workflow selected", severity="warning")
+            return
+
+        try:
+            workflow_id = table.get_row_key_for_row(table.cursor_row)
+
+            if workflow_id is None:
+                self.notify("Invalid workflow selected", severity="warning")
+                return
+
+            from cape_cli.workflow_launcher import WorkflowLauncher
+
+            self.notify(f"Stopping workflow...", severity="information")
+            success = WorkflowLauncher.stop_workflow(str(workflow_id), timeout=30)
+
+            if success:
+                self.notify("Workflow stopped successfully", severity="information")
+                self.load_workflows()
+            else:
+                self.notify("Failed to stop workflow", severity="warning")
+
+        except Exception as e:
+            logger.error(f"Error stopping workflow: {e}")
+            self.notify(f"Error stopping workflow: {e}", severity="error")
+
+    def action_view_logs(self) -> None:
+        """View logs for selected workflow."""
+        table = self.query_one(DataTable)
+
+        # Check if table has any rows
+        if table.row_count == 0:
+            self.notify("No workflows available", severity="warning")
+            return
+
+        if table.cursor_row is None or table.cursor_row < 0:
+            self.notify("No workflow selected", severity="warning")
+            return
+
+        try:
+            workflow_id = table.get_row_key_for_row(table.cursor_row)
+
+            if workflow_id is None:
+                self.notify("Invalid workflow selected", severity="warning")
+                return
+
+            # Open logs modal
+            self.app.push_screen(WorkflowLogsModal(str(workflow_id)))
+
+        except Exception as e:
+            logger.error(f"Error viewing logs: {e}")
+            self.notify(f"Error viewing logs: {e}", severity="error")
 
     def action_back(self) -> None:
-        """Return to previous screen (only after completion)."""
-        if self.can_exit:
-            self.app.pop_screen()
-        else:
-            self.notify("Workflow is still running. Please wait...", severity="warning")
+        """Return to previous screen."""
+        self.app.pop_screen()
 
 
 class HelpScreen(ModalScreen):
@@ -574,6 +1062,7 @@ class HelpScreen(ModalScreen):
 - **n**: Create new issue
 - **Enter/d**: View issue details
 - **r**: Run workflow on selected issue
+- **w**: View all active workflows
 - **q**: Quit application
 - **?**: Show this help screen
 
@@ -588,10 +1077,35 @@ class HelpScreen(ModalScreen):
 ### Issue Detail
 - **e**: Edit description (pending issues only)
 - **r**: Run workflow
+- **w**: View workflows for this issue
+- **s**: Stop active workflow
 - **Escape**: Back to list
 
 ### Workflow Monitor
-- **Escape**: Back (after completion)
+- **s**: Stop workflow
+- **Escape**: Back to list
+
+### Active Workflows Screen
+- **Enter**: View workflow details
+- **s**: Stop selected workflow
+- **l**: View workflow logs
+- **r**: Refresh list
+- **Escape**: Back to list
+
+## Background Workflows
+
+Workflows now run as background processes that continue even after you close the TUI.
+This means you can:
+- Start a workflow and close the TUI
+- Come back later to check progress
+- Monitor multiple workflows simultaneously
+- Stop running workflows at any time
+
+## Workflow Status Indicators
+
+- **⏳**: Workflow is currently running
+- **❌**: Workflow has failed
+- **🟢**: Active workflow indicator (in issue details)
 
 ## Workflow Stages
 
@@ -603,7 +1117,9 @@ class HelpScreen(ModalScreen):
 ## Troubleshooting
 
 - Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in .env
-- Check log files in agents/{adw_id}/tui_workflow/execution.log
+- Check log files in agents/{adw_id}/adw_plan_build/execution.log
+- Use 'w' to view all active workflows and their status
+- Workflows are stored in ~/.cape/ directory
 """
         yield Container(
             Static(help_text, id="help-content"),
@@ -649,11 +1165,53 @@ class CapeApp(App):
         """Initialize application on mount."""
         # Initialize logger
         adw_id = make_adw_id()
-        logger = setup_logger(adw_id, "cape_tui")
-        logger.info("Cape TUI application started")
+        tui_logger = setup_logger(adw_id, "cape_tui")
+        tui_logger.info("Cape TUI application started")
+
+        # Discover and recover workflows
+        self._discover_workflows(tui_logger)
 
         # Push initial screen
         self.push_screen(IssueListScreen())
+
+    def _discover_workflows(self, tui_logger: logging.Logger) -> None:
+        """Discover active workflows and clean up stale state."""
+        from cape_cli.pid_manager import PIDFileManager
+
+        try:
+            tui_logger.info("Discovering active workflows...")
+
+            # Clean up stale PIDs first
+            PIDFileManager.cleanup_stale_pids()
+
+            # Discover active workflows
+            active_workflows = PIDFileManager.discover_workflows()
+
+            if active_workflows:
+                count = len(active_workflows)
+                tui_logger.info(f"Found {count} active workflow(s)")
+                self.notify(
+                    f"Found {count} active workflow(s) - Press 'w' to view",
+                    severity="information",
+                    timeout=5
+                )
+
+                # Log details about each workflow
+                for workflow_id, pid, state in active_workflows:
+                    if state:
+                        tui_logger.info(
+                            f"  - Workflow {workflow_id[:8]}... "
+                            f"(Issue #{state.issue_id}, Status: {state.status})"
+                        )
+            else:
+                tui_logger.info("No active workflows found")
+
+            # Recover orphaned workflows (workflows with state files but no PID)
+            PIDFileManager.recover_orphaned_workflows()
+
+        except Exception as e:
+            tui_logger.error(f"Error during workflow discovery: {e}")
+            logger.error(f"Workflow discovery error: {e}")
 
     def action_help(self) -> None:
         """Show help screen."""

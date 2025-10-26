@@ -10,6 +10,7 @@ from cape_cli.models import (
 )
 from cape_cli.agent import execute_template
 from cape_cli.database import fetch_issue, create_comment, update_issue_status
+from cape_cli.state_manager import StateManager
 
 # Agent names
 AGENT_IMPLEMENTOR = "sdlc_implementor"
@@ -209,7 +210,12 @@ def implement_plan(
     return response
 
 
-def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
+def execute_workflow(
+    issue_id: int,
+    adw_id: str,
+    logger: Logger,
+    state_manager: Optional[StateManager] = None
+) -> bool:
     """Execute complete workflow for an issue.
 
     This is the main orchestration function that runs all workflow steps:
@@ -225,6 +231,7 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
         issue_id: The Cape issue ID to process
         adw_id: Workflow ID for tracking
         logger: Logger instance
+        state_manager: Optional state manager for background workflow monitoring
 
     Returns:
         True if workflow completed successfully, False otherwise
@@ -250,6 +257,13 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
     # Insert progress comment - best-effort, non-blocking
     insert_progress_comment(issue_id, "Workflow started - Issue fetched and validated", logger)
 
+    # Update state: classify step
+    if state_manager:
+        try:
+            state_manager.update_state(adw_id, current_step="classify")
+        except Exception as e:
+            logger.debug(f"Failed to update state: {e}")
+
     # Classify the issue
     logger.info("\n=== Classifying issue ===")
     issue_command, error = classify_issue(issue, adw_id, logger)
@@ -260,6 +274,13 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
 
     # Insert progress comment - best-effort, non-blocking
     insert_progress_comment(issue_id, f"Issue classified as {issue_command}", logger)
+
+    # Update state: plan step
+    if state_manager:
+        try:
+            state_manager.update_state(adw_id, current_step="plan")
+        except Exception as e:
+            logger.debug(f"Failed to update state: {e}")
 
     # Build the implementation plan
     logger.info("\n=== Building implementation plan ===")
@@ -279,6 +300,13 @@ def execute_workflow(issue_id: int, adw_id: str, logger: Logger) -> bool:
         logger.error(f"Error finding plan file: {error}")
         return False
     logger.info(f"Plan file created: {plan_file_path}")
+
+    # Update state: implement step
+    if state_manager:
+        try:
+            state_manager.update_state(adw_id, current_step="implement")
+        except Exception as e:
+            logger.debug(f"Failed to update state: {e}")
 
     # Implement the plan
     logger.info("\n=== Implementing solution ===")
