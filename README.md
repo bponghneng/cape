@@ -67,6 +67,100 @@ Curated reference materials for AI coding tools:
 
 ---
 
+## Cape TUI - Terminal User Interface
+
+A Textual-based Terminal User Interface for managing Cape issues and executing automated workflows.
+
+### Quick Start
+
+```bash
+cd cape/workflows
+uv run cape_tui.py
+```
+
+### Features
+
+- **Issue List View**: Browse all Cape issues with ID, description, status, and creation date
+- **Create Issues**: Modal form for creating new issues with validation
+- **Issue Details**: View full issue information and comment history
+- **Workflow Execution**: Run and monitor the 4-stage adw_plan_build pipeline in real-time
+
+### Keyboard Shortcuts
+
+#### Issue List
+- **n**: Create new issue
+- **Enter**: View issue details
+- **r**: Run workflow on selected issue
+- **q**: Quit application
+- **?**: Show help screen
+
+#### Create Issue
+- **Ctrl+S**: Save issue
+- **Escape**: Cancel
+
+#### Issue Detail
+- **r**: Run workflow
+- **Escape**: Back to list
+
+#### Workflow Monitor
+- **Escape**: Back (after completion)
+
+### Workflow Stages
+
+The TUI monitors a 4-stage automated workflow:
+
+1. **Fetch**: Retrieve issue from database
+2. **Classify**: Determine issue type (feature/bug/chore)
+3. **Plan**: Generate implementation plan
+4. **Implement**: Execute implementation
+
+### Prerequisites
+
+- Python 3.12 or higher
+- uv package manager
+- Supabase account with configured environment variables
+
+### Environment Setup
+
+Create a `.env` file in the repository root with:
+
+```bash
+SUPABASE_URL=https://[project-id].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=[service-role-jwt-token]
+ANTHROPIC_API_KEY=[your-api-key]  # Required for workflow execution
+```
+
+### Troubleshooting
+
+**Missing environment variables**: Ensure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in `.env`
+
+**Connection errors**: Verify Supabase credentials and network connectivity
+
+**Validation errors**: Issue descriptions must be 10-10,000 characters
+
+**Log files**: Check `agents/{adw_id}/tui_workflow/execution.log` for detailed error information
+
+### Development
+
+Run tests:
+```bash
+cd cape/workflows
+pytest test_cape_tui.py -v
+```
+
+Check test coverage:
+```bash
+pytest test_cape_tui.py --cov=cape_tui --cov-report=term-missing
+```
+
+### Architecture
+
+- **Single-file application**: `cape_tui.py` (~600 lines)
+- **Textual framework**: Modern TUI with reactive programming
+- **Background threading**: Non-blocking UI during operations
+- **Integrated logging**: Dual-sink (console + file) using existing utils
+- **Direct module imports**: Uses existing workflow modules without duplication
+
 ## Evolution
 
 - **v3.0** (2025-10-25): Add support for scripted workflows with Supabase integration
