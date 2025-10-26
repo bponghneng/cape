@@ -76,6 +76,9 @@ SYMLINK_CONFIG = [
     SymlinkMapping(
         "commands/codex", ".codex/prompts", "*.md", "Prompts", recursive=True
     ),
+    SymlinkMapping(
+        "commands/gemini", ".gemini/commands", "*", "Commands", recursive=True
+    ),
 ]
 
 # AI documentation mapping (conditionally included)
