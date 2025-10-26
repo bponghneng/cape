@@ -9,6 +9,7 @@ from textual.screen import Screen, ModalScreen
 from textual.widgets import Header, Footer, DataTable, TextArea, Button, Static, RichLog
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
+from textual.timer import Timer
 from textual import work
 from dotenv import load_dotenv
 
@@ -20,6 +21,9 @@ from cape_cli import workflow
 
 # Load environment variables
 load_dotenv()
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 
 class IssueListScreen(Screen):
@@ -288,6 +292,8 @@ class IssueDetailScreen(Screen):
     issue: reactive[Optional[CapeIssue]] = reactive(None)
     comments: reactive[List[CapeComment]] = reactive([])
     loading: reactive[bool] = reactive(False)
+    auto_refresh_active: reactive[bool] = reactive(False)
+    refresh_timer: Optional[Timer] = None
 
     def __init__(self, issue_id: int):
         """Initialize with issue ID."""
@@ -308,20 +314,70 @@ class IssueDetailScreen(Screen):
 
     def on_mount(self) -> None:
         """Initialize the screen when mounted."""
+        # Create a paused timer for auto-refresh (will be activated if issue status is "started")
+        self.refresh_timer = self.set_interval(10, lambda: self.load_data(is_refresh=True), pause=True, name="comment_refresh")
+        # Initial data load
         self.load_data()
 
+    def on_unmount(self) -> None:
+        """Clean up resources when screen is unmounted."""
+        # Stop the refresh timer to prevent background API calls
+        if self.refresh_timer is not None:
+            self.refresh_timer.stop()
+            self.auto_refresh_active = False
+
     @work(exclusive=True, thread=True)
-    def load_data(self) -> None:
-        """Load issue and comments in background thread."""
+    def load_data(self, is_refresh: bool = False) -> None:
+        """Load issue and comments in background thread.
+
+        Args:
+            is_refresh: If True, this is a periodic refresh (not initial load)
+        """
         try:
+            # Show loading indicator for refresh operations
+            if is_refresh:
+                self.app.call_from_thread(self._set_loading, True)
+
             issue = fetch_issue(self.issue_id)
             comments = fetch_comments(self.issue_id)
             self.app.call_from_thread(self._display_data, issue, comments)
+
+            # Clear loading indicator
+            if is_refresh:
+                self.app.call_from_thread(self._set_loading, False)
         except Exception as e:
-            self.app.call_from_thread(self.notify, f"Error loading issue: {e}", severity="error")
+            # Clear loading indicator
+            if is_refresh:
+                self.app.call_from_thread(self._set_loading, False)
+
+            # Differentiate between initial load and refresh errors
+            if is_refresh:
+                # For refresh errors, log but don't show intrusive notification
+                logger.warning(f"Auto-refresh failed for issue {self.issue_id}: {e}")
+            else:
+                # For initial load errors, show error to user
+                logger.error(f"Failed to load issue {self.issue_id}: {e}")
+                self.app.call_from_thread(self.notify, f"Error loading issue: {e}", severity="error")
+
+    def _set_loading(self, loading: bool) -> None:
+        """Set loading state for the comments log."""
+        try:
+            comments_log = self.query_one(RichLog)
+            comments_log.loading = loading
+        except Exception:
+            # Ignore errors if widget is not yet mounted
+            pass
 
     def _display_data(self, issue: CapeIssue, comments: List[CapeComment]) -> None:
         """Display issue and comments data."""
+        # Check if comments have changed (for smart refresh optimization)
+        comments_changed = (
+            self.comments != comments or
+            len(self.comments) != len(comments) or
+            self.issue is None or
+            self.issue.status != issue.status
+        )
+
         # Store issue for later use
         self.issue = issue
         self.comments = comments
@@ -345,16 +401,34 @@ Updated: {updated}
 """
         self.query_one("#issue-content", Static).update(content)
 
-        # Display comments
-        comments_log = self.query_one(RichLog)
-        comments_log.clear()
+        # Display comments (only update if changed)
+        if comments_changed:
+            comments_log = self.query_one(RichLog)
+            comments_log.clear()
 
-        if not comments:
-            comments_log.write("No comments yet")
-        else:
-            for comment in comments:
-                timestamp = comment.created_at.strftime("%Y-%m-%d %H:%M") if comment.created_at else "Unknown"
-                comments_log.write(f"[dim]{timestamp}[/dim]\n{comment.comment}\n")
+            if not comments:
+                comments_log.write("No comments yet")
+            else:
+                for comment in comments:
+                    timestamp = comment.created_at.strftime("%Y-%m-%d %H:%M") if comment.created_at else "Unknown"
+                    comments_log.write(f"[dim]{timestamp}[/dim]\n{comment.comment}\n")
+
+            # Log refresh activity
+            if self.auto_refresh_active:
+                logger.debug(f"Auto-refresh updated {len(comments)} comments for issue {self.issue_id}")
+
+        # Activate or deactivate auto-refresh based on issue status
+        if self.refresh_timer is not None:
+            if issue.status == "started":
+                if not self.auto_refresh_active:
+                    self.auto_refresh_active = True
+                    self.refresh_timer.resume()
+                    logger.info(f"Auto-refresh activated for issue {self.issue_id}")
+            else:
+                if self.auto_refresh_active:
+                    self.auto_refresh_active = False
+                    self.refresh_timer.pause()
+                    logger.info(f"Auto-refresh deactivated for issue {self.issue_id}")
 
     def action_back(self) -> None:
         """Return to issue list."""
