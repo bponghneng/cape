@@ -1,0 +1,48 @@
+[project]
+name = "cape-cli"
+version = "0.1.0"
+description = "TUI-first CLI for Cape workflow management"
+readme = "README.md"
+authors = [
+    { name = "Robert Pratt", email = "robert@bpong.me" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "typer>=0.12.0",
+    "textual>=0.50.0",
+    "supabase>=2.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+cape = "cape_cli.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cape_cli"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/cape_cli/cape_tui.tcss" = "cape_cli/cape_tui.tcss"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.hatch.build]
+include = [
+    "src/cape_cli/*.py",
+    "src/cape_cli/*.tcss",
+]
