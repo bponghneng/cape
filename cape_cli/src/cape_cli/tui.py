@@ -7,7 +7,7 @@ from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Header, Footer, DataTable, TextArea, Button, Static, RichLog, Collapsible
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
 from textual.timer import Timer
 from textual import work
@@ -174,31 +174,49 @@ class IssueListScreen(Screen):
         self.load_issues()
 
 
-class CreateIssueScreen(ModalScreen[Optional[int]]):
-    """Modal form for creating new issues."""
+class IssueForm(Container):
+    """Reusable form component for issue creation and editing.
+
+    This composite widget provides a consistent form interface with validation
+    for both creating new issues and editing existing issue descriptions.
+
+    Args:
+        initial_text: Optional initial text for the TextArea
+        on_save_callback: Callable to invoke when save is triggered
+        on_cancel_callback: Callable to invoke when cancel is triggered
+    """
 
     BINDINGS = [
         ("ctrl+s", "save", "Save"),
         ("escape", "cancel", "Cancel"),
     ]
 
+    def __init__(
+        self,
+        initial_text: str = "",
+        on_save_callback=None,
+        on_cancel_callback=None
+    ):
+        """Initialize the form with optional callbacks."""
+        super().__init__()
+        self.initial_text = initial_text
+        self.on_save_callback = on_save_callback
+        self.on_cancel_callback = on_cancel_callback
+
     def compose(self) -> ComposeResult:
-        """Create child widgets for the create issue modal."""
-        yield Container(
-            Static("Create New Issue", id="modal-header"),
-            TextArea(id="description", language="markdown"),
-            Horizontal(
-                Button("Save", variant="success", id="save-btn"),
-                Button("Cancel", variant="error", id="cancel-btn"),
-                id="button-row"
-            ),
-            id="create-issue-modal"
+        """Create child widgets for the form."""
+        yield TextArea(id="description", language="markdown")
+        yield Horizontal(
+            Button("Save", variant="success", id="save-btn"),
+            Button("Cancel", variant="error", id="cancel-btn"),
+            id="button-row"
         )
 
     def on_mount(self) -> None:
-        """Initialize the modal when mounted."""
+        """Initialize the form when mounted."""
         text_area = self.query_one(TextArea)
-        text_area.text = "Enter issue description..."
+        if self.initial_text:
+            text_area.text = self.initial_text
         text_area.focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -209,50 +227,111 @@ class CreateIssueScreen(ModalScreen[Optional[int]]):
             self.action_cancel()
 
     def action_save(self) -> None:
-        """Save the new issue."""
+        """Validate and trigger save callback."""
         text_area = self.query_one(TextArea)
         description = text_area.text.strip()
 
         # Validation
         if not description or description == "Enter issue description...":
-            self.notify("Description cannot be empty", severity="warning")
+            self.screen.notify("Description cannot be empty", severity="warning")
             return
 
         if len(description) < 10:
-            self.notify("Description must be at least 10 characters", severity="warning")
+            self.screen.notify("Description must be at least 10 characters", severity="warning")
             return
 
         if len(description) > 10000:
-            self.notify("Description cannot exceed 10,000 characters", severity="warning")
+            self.screen.notify("Description cannot exceed 10,000 characters", severity="warning")
             return
 
-        # Create issue in background
+        # Trigger callback if provided
+        if self.on_save_callback:
+            self.on_save_callback(description)
+
+    def action_cancel(self) -> None:
+        """Trigger cancel callback."""
+        if self.on_cancel_callback:
+            self.on_cancel_callback()
+
+
+class CommentsWidget(RichLog):
+    """Widget for displaying issue comments with consistent formatting.
+
+    This widget extends RichLog to provide specialized comment display
+    functionality with timestamp formatting and empty state handling.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize the comments widget."""
+        super().__init__(**kwargs)
+
+    def update_comments(self, comments: List[CapeComment]) -> None:
+        """Update the displayed comments.
+
+        Args:
+            comments: List of CapeComment objects to display
+        """
+        self.clear()
+
+        if not comments:
+            self.write("No comments yet")
+        else:
+            for comment in comments:
+                timestamp = comment.created_at.strftime("%Y-%m-%d %H:%M") if comment.created_at else "Unknown"
+                self.write(f"[dim]{timestamp}[/dim]\n{comment.comment}\n")
+
+
+class CreateIssueScreen(ModalScreen[Optional[int]]):
+    """Modal form for creating new issues."""
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the create issue modal."""
+        yield Container(
+            Static("Create New Issue", id="modal-header"),
+            IssueForm(
+                initial_text="Enter issue description...",
+                on_save_callback=self.handle_save,
+                on_cancel_callback=self.handle_cancel
+            ),
+            id="create-issue-modal"
+        )
+
+    def handle_save(self, description: str) -> None:
+        """Handle save action from IssueForm.
+
+        Args:
+            description: Validated description text
+        """
         self.create_issue_handler(description)
+
+    def handle_cancel(self) -> None:
+        """Handle cancel action from IssueForm."""
+        self.dismiss(None)
 
     @work(exclusive=True, thread=True)
     def create_issue_handler(self, description: str) -> None:
-        """Create issue in background thread."""
+        """Create issue in background thread.
+
+        Args:
+            description: Issue description to save
+        """
         try:
             issue = db_create_issue(description)
             self.app.call_from_thread(self.dismiss, issue.id)
         except Exception as e:
             self.app.call_from_thread(self.notify, f"Error creating issue: {e}", severity="error")
 
-    def action_cancel(self) -> None:
-        """Cancel and close the modal."""
-        self.dismiss(None)
-
 
 class EditDescriptionScreen(ModalScreen[bool]):
     """Modal form for editing issue description."""
 
-    BINDINGS = [
-        ("ctrl+s", "save", "Save"),
-        ("escape", "cancel", "Cancel"),
-    ]
-
     def __init__(self, issue_id: int, current_description: str):
-        """Initialize with issue ID and current description."""
+        """Initialize with issue ID and current description.
+
+        Args:
+            issue_id: ID of the issue being edited
+            current_description: Current description text
+        """
         super().__init__()
         self.issue_id = issue_id
         self.current_description = current_description
@@ -261,61 +340,38 @@ class EditDescriptionScreen(ModalScreen[bool]):
         """Create child widgets for the edit description modal."""
         yield Container(
             Static(f"Edit Issue #{self.issue_id} Description", id="modal-header"),
-            TextArea(id="description", language="markdown"),
-            Horizontal(
-                Button("Save", variant="success", id="save-btn"),
-                Button("Cancel", variant="error", id="cancel-btn"),
-                id="button-row"
+            IssueForm(
+                initial_text=self.current_description,
+                on_save_callback=self.handle_save,
+                on_cancel_callback=self.handle_cancel
             ),
             id="edit-description-modal"
         )
 
-    def on_mount(self) -> None:
-        """Initialize the modal when mounted."""
-        text_area = self.query_one(TextArea)
-        text_area.text = self.current_description
-        text_area.focus()
+    def handle_save(self, description: str) -> None:
+        """Handle save action from IssueForm.
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle button presses."""
-        if event.button.id == "save-btn":
-            self.action_save()
-        elif event.button.id == "cancel-btn":
-            self.action_cancel()
-
-    def action_save(self) -> None:
-        """Save the updated description."""
-        text_area = self.query_one(TextArea)
-        description = text_area.text.strip()
-
-        # Validation
-        if not description:
-            self.notify("Description cannot be empty", severity="warning")
-            return
-
-        if len(description) < 10:
-            self.notify("Description must be at least 10 characters", severity="warning")
-            return
-
-        if len(description) > 10000:
-            self.notify("Description cannot exceed 10,000 characters", severity="warning")
-            return
-
-        # Update issue in background
+        Args:
+            description: Validated description text
+        """
         self.update_description_handler(description)
+
+    def handle_cancel(self) -> None:
+        """Handle cancel action from IssueForm."""
+        self.dismiss(False)
 
     @work(exclusive=True, thread=True)
     def update_description_handler(self, description: str) -> None:
-        """Update issue description in background thread."""
+        """Update issue description in background thread.
+
+        Args:
+            description: New description text
+        """
         try:
             update_issue_description(self.issue_id, description)
             self.app.call_from_thread(self.dismiss, True)
         except Exception as e:
             self.app.call_from_thread(self.notify, f"Error updating description: {e}", severity="error")
-
-    def action_cancel(self) -> None:
-        """Cancel and close the modal."""
-        self.dismiss(False)
 
 
 class IssueDetailScreen(Screen):
@@ -345,13 +401,15 @@ class IssueDetailScreen(Screen):
     def compose(self) -> ComposeResult:
         """Create child widgets for the detail screen."""
         yield Header()
-        yield Vertical(
+        yield VerticalScroll(
             Static("Issue Details", id="detail-header"),
-            Static("Loading...", id="issue-content"),
+            Collapsible(
+                Static("Loading...", id="issue-content"),
+                title="Description",
+                collapsed=False
+            ),
             Static("Active Workflows", id="workflows-header"),
             Static("No active workflows", id="workflows-content"),
-            Static("Comments", id="comments-header"),
-            RichLog(id="comments-log"),
             id="detail-container"
         )
         yield Footer()
@@ -409,22 +467,28 @@ class IssueDetailScreen(Screen):
                 self.app.call_from_thread(self.notify, f"Error loading issue: {e}", severity="error")
 
     def _set_loading(self, loading: bool) -> None:
-        """Set loading state for the comments log."""
+        """Set loading state for the comments widget."""
         try:
-            comments_log = self.query_one(RichLog)
-            comments_log.loading = loading
+            # Try to find CommentsWidget if it exists
+            comments_widget = self.query_one(CommentsWidget)
+            comments_widget.loading = loading
         except Exception:
-            # Ignore errors if widget is not yet mounted
+            # Ignore errors if widget is not yet mounted or doesn't exist
             pass
 
     def _display_data(self, issue: CapeIssue, comments: List[CapeComment]) -> None:
-        """Display issue and comments data."""
-        # Check if comments have changed (for smart refresh optimization)
+        """Display issue and comments data with conditional comments visibility.
+
+        Args:
+            issue: The issue to display
+            comments: List of comments for the issue
+        """
+        # Check if we need to add or remove the comments section
+        status_changed = self.issue is None or self.issue.status != issue.status
         comments_changed = (
             self.comments != comments or
             len(self.comments) != len(comments) or
-            self.issue is None or
-            self.issue.status != issue.status
+            status_changed
         )
 
         # Store issue for later use
@@ -459,21 +523,43 @@ Updated: {updated}
 """
         self.query_one("#issue-content", Static).update(content)
 
-        # Display comments (only update if changed)
-        if comments_changed:
-            comments_log = self.query_one(RichLog)
-            comments_log.clear()
+        # Handle conditional comments section visibility
+        # Comments should only be visible for "started" or "completed" issues
+        should_show_comments = issue.status in ["started", "completed"]
 
-            if not comments:
-                comments_log.write("No comments yet")
-            else:
-                for comment in comments:
-                    timestamp = comment.created_at.strftime("%Y-%m-%d %H:%M") if comment.created_at else "Unknown"
-                    comments_log.write(f"[dim]{timestamp}[/dim]\n{comment.comment}\n")
+        # Check if comments section currently exists
+        try:
+            comments_widget = self.query_one(CommentsWidget)
+            has_comments_section = True
+        except Exception:
+            has_comments_section = False
 
-            # Log refresh activity
-            if self.auto_refresh_active:
-                logger.debug(f"Auto-refresh updated {len(comments)} comments for issue {self.issue_id}")
+        # Add or remove comments section based on status
+        if should_show_comments and not has_comments_section:
+            # Add comments section
+            container = self.query_one("#detail-container")
+            container.mount(Static("Comments", id="comments-header"))
+            container.mount(CommentsWidget(id="comments-widget"))
+            comments_changed = True  # Force update since we just added it
+        elif not should_show_comments and has_comments_section:
+            # Remove comments section
+            try:
+                self.query_one("#comments-header").remove()
+                self.query_one(CommentsWidget).remove()
+            except Exception:
+                pass
+
+        # Update comments if section is visible and data changed
+        if should_show_comments and comments_changed:
+            try:
+                comments_widget = self.query_one(CommentsWidget)
+                comments_widget.update_comments(comments)
+
+                # Log refresh activity
+                if self.auto_refresh_active:
+                    logger.debug(f"Auto-refresh updated {len(comments)} comments for issue {self.issue_id}")
+            except Exception as e:
+                logger.warning(f"Error updating comments: {e}")
 
         # Activate or deactivate auto-refresh based on issue status
         if self.refresh_timer is not None:
