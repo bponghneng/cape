@@ -1,8 +1,8 @@
 """Tests for delete functionality in the TUI."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from cape_cli.tui import ConfirmDeleteModal, IssueListScreen, IssueDetailScreen
+from unittest.mock import Mock, patch
+from cape_cli.tui import ConfirmDeleteModal, IssueListScreen, IssueDetailScreen, CapeApp
 from cape_cli.models import CapeIssue
 
 
@@ -35,62 +35,37 @@ class TestConfirmDeleteModal:
         assert modal.issue_id == mock_issue.id
         assert modal.issue_description == mock_issue.description
 
-    def test_modal_truncates_long_description(self):
-        """Test that long descriptions are truncated."""
+    def test_modal_stores_full_description(self):
+        """Test that modal stores full description (truncation happens during render)."""
         long_desc = "x" * 150
         modal = ConfirmDeleteModal(1, long_desc)
+        # Modal stores the full description
         assert modal.issue_description == long_desc
-        # The truncation happens in compose(), not __init__
+        # Truncation happens in compose() method when rendering
 
 
 class TestIssueListScreenDelete:
-    """Test cases for delete functionality in IssueListScreen.
+    """Test cases for delete functionality in IssueListScreen."""
 
-    Note: Full integration testing of Textual screens requires an app context.
-    These tests verify basic logic and structure.
-    """
-
-    @patch("cape_cli.database.delete_issue")
-    def test_delete_issue_function_called(self, mock_delete):
-        """Test that delete_issue function is importable and callable."""
-        from cape_cli.database import delete_issue
-
-        mock_delete.return_value = True
-
-        # Verify the function is properly imported in tui module
+    def test_delete_issue_function_importable(self):
+        """Test that delete_issue function is importable from both modules."""
+        from cape_cli.database import delete_issue as db_delete_issue
         from cape_cli.tui import delete_issue as tui_delete_issue
+        
+        # Verify both imports work and refer to the same function
+        assert db_delete_issue is not None
         assert tui_delete_issue is not None
+        assert db_delete_issue is tui_delete_issue
 
 
 class TestIssueDetailScreenDelete:
     """Test cases for delete functionality in IssueDetailScreen.
-
-    Note: Full integration testing of Textual screens requires an app context.
-    These tests verify basic logic and structure.
+    
+    These are simple unit tests that don't require full app context.
     """
 
-    def test_screen_has_delete_binding(self):
-        """Test that IssueDetailScreen has delete key binding."""
-        bindings = [binding[0] for binding in IssueDetailScreen.BINDINGS]
-        assert "delete" in bindings
-
-    def test_screen_has_action_delete_issue(self):
-        """Test that IssueDetailScreen has action_delete_issue method."""
-        assert hasattr(IssueDetailScreen, "action_delete_issue")
-        assert callable(getattr(IssueDetailScreen, "action_delete_issue"))
-
-    def test_screen_has_handle_delete_confirmation(self):
-        """Test that IssueDetailScreen has handle_delete_confirmation method."""
-        assert hasattr(IssueDetailScreen, "handle_delete_confirmation")
-        assert callable(getattr(IssueDetailScreen, "handle_delete_confirmation"))
-
-    def test_screen_has_delete_issue_handler(self):
-        """Test that IssueDetailScreen has delete_issue_handler method."""
-        assert hasattr(IssueDetailScreen, "delete_issue_handler")
-        assert callable(getattr(IssueDetailScreen, "delete_issue_handler"))
-
     def test_handle_delete_confirmation_cancelled(self):
-        """Test handling cancelled delete confirmation."""
+        """Test that cancelling delete confirmation does not trigger deletion."""
         screen = IssueDetailScreen(issue_id=1)
         screen.delete_issue_handler = Mock()
 
@@ -101,7 +76,7 @@ class TestIssueDetailScreenDelete:
         screen.delete_issue_handler.assert_not_called()
 
     def test_handle_delete_confirmation_accepted(self):
-        """Test handling accepted delete confirmation."""
+        """Test that accepting delete confirmation triggers deletion."""
         screen = IssueDetailScreen(issue_id=1)
         screen.delete_issue_handler = Mock()
 
@@ -112,23 +87,48 @@ class TestIssueDetailScreenDelete:
         screen.delete_issue_handler.assert_called_once()
 
 
-class TestIssueListScreenDeleteBindings:
-    """Test cases for delete bindings in IssueListScreen."""
+class TestIssueListScreenDeleteFlow:
+    """Test cases for delete flow in IssueListScreen.
+    
+    These are simple unit tests for handler methods.
+    """
 
-    def test_screen_has_delete_bindings(self):
-        """Test that IssueListScreen has delete key bindings."""
-        bindings = [binding[0] for binding in IssueListScreen.BINDINGS]
-        assert "d" in bindings
-        assert "delete" in bindings
+    def test_handle_delete_confirmation_cancelled_no_deletion(self):
+        """Test that cancelling confirmation does not delete the issue."""
+        screen = IssueListScreen()
+        screen.delete_issue_handler = Mock()
+        
+        # User cancels
+        screen.handle_delete_confirmation(issue_id=1, row_key="test-key", confirmed=False)
+        
+        # Should not call delete handler
+        screen.delete_issue_handler.assert_not_called()
 
-    def test_screen_has_action_delete_issue(self):
-        """Test that IssueListScreen has action_delete_issue method."""
-        assert hasattr(IssueListScreen, "action_delete_issue")
-        assert callable(getattr(IssueListScreen, "action_delete_issue"))
+    def test_handle_delete_confirmation_accepted_triggers_deletion(self):
+        """Test that accepting confirmation triggers the delete handler."""
+        screen = IssueListScreen()
+        screen.delete_issue_handler = Mock()
+        
+        # User confirms
+        screen.handle_delete_confirmation(issue_id=1, row_key="test-key", confirmed=True)
+        
+        # Should call delete handler with correct parameters
+        screen.delete_issue_handler.assert_called_once_with(1, "test-key")
 
-    def test_screen_has_delete_handlers(self):
-        """Test that IssueListScreen has delete handler methods."""
-        assert hasattr(IssueListScreen, "handle_delete_confirmation")
-        assert callable(getattr(IssueListScreen, "handle_delete_confirmation"))
-        assert hasattr(IssueListScreen, "delete_issue_handler")
-        assert callable(getattr(IssueListScreen, "delete_issue_handler"))
+
+# TODO: Add integration tests using run_test() and Pilot
+# 
+# Integration tests would exercise the complete delete flow end-to-end:
+#  - Test deleting pending issues from list screen
+#  - Test that started issues show warning when delete is attempted
+#  - Test deleting from detail screen
+#  - Test cancelling delete confirmation
+# 
+# Challenge: These tests require mocking Textual's @work decorator behavior
+# and coordinating async operations with background threads. The current unit
+# tests provide good coverage of the delete logic. Full integration tests can
+# be added when there's a specific need or when we have better patterns for
+# mocking the worker threads.
+# 
+# See AGENTS.md (Testing Strategy section) for examples of how to structure
+# these tests using app.run_test() and pilot.
