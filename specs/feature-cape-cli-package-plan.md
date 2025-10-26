@@ -48,27 +48,27 @@ Use these files to implement the feature.
 - **CapeComment**: Comment model for issue tracking
 - **AgentPromptRequest/Response**: Claude Code agent execution types
 - **SlashCommand**: Type literal for workflow commands
-- **Migration**: Copy to `src/cape_cli/models.py` with no logic changes
+- **Migration**: Copy to `src/cape-cli/models.py` with no logic changes
 
 #### `/Users/bponghneng/git/cape/workflows/utils.py` - Utility Functions
 **Purpose**: ADW ID generation and structured logging
 - **make_adw_id()**: Generates 8-character UUID for execution tracking
 - **setup_logger()**: Creates dual-output logger (file + console)
-- **Migration**: Copy to `src/cape_cli/utils.py`, update path logic for installed package context
+- **Migration**: Copy to `src/cape-cli/utils.py`, update path logic for installed package context
 
 #### `/Users/bponghneng/git/cape/workflows/supabase_client.py` - Database Client
 **Purpose**: Supabase integration for issue and comment operations
 - **get_client()**: Singleton Supabase client with LRU cache
 - **create_issue()/fetch_issue()**: Issue CRUD operations
 - **create_comment()/fetch_comments()**: Comment operations
-- **Migration**: Copy to `src/cape_cli/database.py`, update imports to use cape_cli package
+- **Migration**: Copy to `src/cape-cli/database.py`, update imports to use cape-cli package
 
 #### `/Users/bponghneng/git/cape/workflows/agent.py` - Agent Execution
 **Purpose**: Claude Code CLI integration for workflow automation
 - **execute_template()**: Run Claude Code with slash commands
 - **prompt_claude_code()**: Low-level CLI execution and JSONL parsing
 - **get_claude_env()**: Environment variable filtering for security
-- **Migration**: Copy to `src/cape_cli/agent.py`, update output path resolution
+- **Migration**: Copy to `src/cape-cli/agent.py`, update output path resolution
 
 #### `/Users/bponghneng/git/cape/workflows/adw_plan_build.py` - Workflow Driver
 **Purpose**: End-to-end issue processing pipeline
@@ -77,7 +77,7 @@ Use these files to implement the feature.
 - **get_plan_file()**: Extract plan file path from agent output
 - **implement_plan()**: Execute implementation via agent
 - **insert_progress_comment()**: Best-effort progress tracking
-- **Migration**: Extract workflow functions to `src/cape_cli/workflow.py` module for reuse by both CLI and TUI
+- **Migration**: Extract workflow functions to `src/cape-cli/workflow.py` module for reuse by both CLI and TUI
 
 #### `/Users/bponghneng/git/cape/workflows/cape_tui.py` - TUI Application
 **Purpose**: Textual-based terminal user interface
@@ -86,19 +86,19 @@ Use these files to implement the feature.
 - **IssueDetailScreen**: Issue details and comment history
 - **WorkflowScreen**: Real-time workflow execution monitor
 - **HelpScreen**: Keyboard shortcuts and usage info
-- **Migration**: Copy to `src/cape_cli/tui.py`, update imports, integrate with shared workflow module
+- **Migration**: Copy to `src/cape-cli/tui.py`, update imports, integrate with shared workflow module
 
 #### `/Users/bponghneng/git/cape/workflows/cape_tui.tcss` - TUI Stylesheet
 **Purpose**: Textual CSS for TUI styling
-- **Migration**: Copy to `src/cape_cli/cape_tui.tcss`, configure resource loading from installed package
+- **Migration**: Copy to `src/cape-cli/cape_tui.tcss`, configure resource loading from installed package
 
 #### `/Users/bponghneng/git/cape/workflows/create_issue_from_string.py` - CLI Script
 **Purpose**: Create issues from command-line string
-- **Migration**: Refactor logic into `cape create` subcommand in `src/cape_cli/cli.py`
+- **Migration**: Refactor logic into `cape create` subcommand in `src/cape-cli/cli.py`
 
 #### `/Users/bponghneng/git/cape/workflows/create_issue_from_file.py` - CLI Script
 **Purpose**: Create issues from file contents
-- **Migration**: Refactor logic into `cape create-from-file` subcommand in `src/cape_cli/cli.py`
+- **Migration**: Refactor logic into `cape create-from-file` subcommand in `src/cape-cli/cli.py`
 
 ### Test Files
 
@@ -144,7 +144,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 ```
 
-#### `src/cape_cli/__init__.py` - Package Initialization
+#### `src/cape-cli/__init__.py` - Package Initialization
 **Purpose**: Define public API and version
 ```python
 """Cape CLI - TUI-first workflow management."""
@@ -152,7 +152,7 @@ build-backend = "hatchling.build"
 __version__ = "0.1.0"
 ```
 
-#### `src/cape_cli/cli.py` - CLI Entry Point
+#### `src/cape-cli/cli.py` - CLI Entry Point
 **Purpose**: Typer application with TUI-first behavior
 ```python
 import typer
@@ -192,7 +192,7 @@ def run(
     # Implementation using workflow.execute_workflow()
 ```
 
-#### `src/cape_cli/workflow.py` - Workflow Orchestration
+#### `src/cape-cli/workflow.py` - Workflow Orchestration
 **Purpose**: Shared workflow logic for CLI and TUI
 ```python
 """Workflow orchestration for adw_plan_build process."""
@@ -248,16 +248,16 @@ IMPORTANT: Execute every step in order, top to bottom.
 
 ### Task 1.1: Initialize Project Structure and Configuration
 
-**Objective**: Create the cape_cli directory with proper Python package layout using src/ structure
+**Objective**: Create the cape-cli directory with proper Python package layout using src/ structure
 
 **Steps**:
-1. Create project directory: `mkdir -p /Users/bponghneng/git/cape/cape_cli`
-2. Initialize uv project: `cd cape_cli && uv init --lib`
+1. Create project directory: `mkdir -p /Users/bponghneng/git/cape/cape-cli`
+2. Initialize uv project: `cd cape-cli && uv init --lib`
 3. Create src layout:
    ```bash
-   mkdir -p src/cape_cli
+   mkdir -p src/cape-cli
    mkdir -p tests
-   touch src/cape_cli/__init__.py
+   touch src/cape-cli/__init__.py
    touch tests/__init__.py
    ```
 4. Configure `pyproject.toml` with project metadata, dependencies, and entry point
@@ -271,10 +271,10 @@ IMPORTANT: Execute every step in order, top to bottom.
 
 ### Task 1.2: Migrate Core Data Models Module
 
-**Objective**: Copy and refactor data_types.py into src/cape_cli/models.py
+**Objective**: Copy and refactor data_types.py into src/cape-cli/models.py
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/data_types.py` to `src/cape_cli/models.py`
+1. Copy `/Users/bponghneng/git/cape/workflows/data_types.py` to `src/cape-cli/models.py`
 2. Update all imports to use absolute package imports
 3. Verify all Pydantic models are present: CapeIssue, CapeComment, Agent types, SlashCommand
 4. Add module-level docstring
@@ -290,7 +290,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Copy and refactor utils.py with updated path handling
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/utils.py` to `src/cape_cli/utils.py`
+1. Copy `/Users/bponghneng/git/cape/workflows/utils.py` to `src/cape-cli/utils.py`
 2. Update log directory path calculation:
    - Use current working directory as base for `agents/` directory
    - Remove hardcoded absolute paths
@@ -307,7 +307,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Copy and refactor supabase_client.py with package imports
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/supabase_client.py` to `src/cape_cli/database.py`
+1. Copy `/Users/bponghneng/git/cape/workflows/supabase_client.py` to `src/cape-cli/database.py`
 2. Update imports: `from cape_cli.models import CapeIssue, CapeComment`
 3. Preserve all functions: get_client, fetch_issue, fetch_all_issues, create_issue, create_comment, fetch_comments
 4. Preserve SupabaseConfig validation logic
@@ -323,7 +323,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Copy and refactor agent.py with updated paths
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/agent.py` to `src/cape_cli/agent.py`
+1. Copy `/Users/bponghneng/git/cape/workflows/agent.py` to `src/cape-cli/agent.py`
 2. Update imports: `from cape_cli.models import AgentPromptRequest, AgentPromptResponse, AgentTemplateRequest`
 3. Update output directory paths to use current working directory
 4. Preserve subprocess execution logic and JSONL parsing
@@ -339,7 +339,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Extract workflow logic from adw_plan_build.py into reusable module
 
 **Steps**:
-1. Create `src/cape_cli/workflow.py`
+1. Create `src/cape-cli/workflow.py`
 2. Extract functions from `/Users/bponghneng/git/cape/workflows/adw_plan_build.py`:
    - classify_issue()
    - build_plan()
@@ -347,7 +347,7 @@ IMPORTANT: Execute every step in order, top to bottom.
    - implement_plan()
    - insert_progress_comment()
 3. Create new function: `execute_workflow(issue_id, adw_id, logger) -> bool`
-4. Update imports to use cape_cli package
+4. Update imports to use cape-cli package
 5. Create unit tests in `tests/test_workflow.py` with mocked agent calls
 
 **Acceptance Criteria**:
@@ -361,7 +361,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Implement cli.py with Typer configuration for TUI-first behavior
 
 **Steps**:
-1. Create `src/cape_cli/cli.py`
+1. Create `src/cape-cli/cli.py`
 2. Configure Typer app: `typer.Typer(invoke_without_command=True, no_args_is_help=False)`
 3. Implement main callback:
    ```python
@@ -463,8 +463,8 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Copy and integrate cape_tui.py into package
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/cape_tui.py` to `src/cape_cli/tui.py`
-2. Update all imports to use cape_cli package:
+1. Copy `/Users/bponghneng/git/cape/workflows/cape_tui.py` to `src/cape-cli/tui.py`
+2. Update all imports to use cape-cli package:
    - `from cape_cli.database import fetch_issue, create_issue, fetch_all_issues, create_comment`
    - `from cape_cli.models import CapeIssue, CapeComment`
    - `from cape_cli.utils import make_adw_id, setup_logger`
@@ -484,7 +484,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 **Objective**: Package cape_tui.tcss and configure loading from installed package
 
 **Steps**:
-1. Copy `/Users/bponghneng/git/cape/workflows/cape_tui.tcss` to `src/cape_cli/cape_tui.tcss`
+1. Copy `/Users/bponghneng/git/cape/workflows/cape_tui.tcss` to `src/cape-cli/cape_tui.tcss`
 2. Update `CapeApp` class in `tui.py` to load CSS from package resources:
    ```python
    from importlib.resources import files
@@ -517,7 +517,7 @@ IMPORTANT: Execute every step in order, top to bottom.
    - `tests/test_workflow.py` - From test_adw_comments.py
    - `tests/test_cli.py` - From test_cli_scripts.py
    - `tests/test_tui.py` - From test_cape_tui.py
-2. Update all imports to use `cape_cli` package
+2. Update all imports to use `cape-cli` package
 3. Add pytest configuration to `pyproject.toml`:
    ```toml
    [tool.pytest.ini_options]
@@ -623,7 +623,7 @@ IMPORTANT: Execute every step in order, top to bottom.
 
 **Steps**:
 1. Install package in development mode: `uv pip install -e .`
-2. Run all tests: `pytest tests/ -v --cov=cape_cli`
+2. Run all tests: `pytest tests/ -v --cov=cape-cli`
 3. Verify CLI commands:
    - `cape --help` - Shows all commands
    - `cape --version` - Shows version
@@ -757,11 +757,11 @@ Execute every command to validate the feature works correctly with zero regressi
 
 ```bash
 # Install package in development mode
-cd /Users/bponghneng/git/cape/cape_cli
+cd /Users/bponghneng/git/cape/cape-cli
 uv pip install -e .
 
 # Run test suite
-pytest tests/ -v --cov=cape_cli --cov-report=term-missing
+pytest tests/ -v --cov=cape-cli --cov-report=term-missing
 
 # Verify CLI entry point
 cape --help
