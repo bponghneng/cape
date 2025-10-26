@@ -11,6 +11,8 @@ dependencies = [
     "supabase>=2.0",
     "pydantic>=2.0",
     "python-dotenv>=1.0.0",
+    "psutil>=6.1.0",
+    "watchdog>=6.0.0",
 ]
 classifiers = ["Programming Language :: Python :: 3.12"]
 
