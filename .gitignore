@@ -26,6 +26,7 @@ __pycache__
 
 # AI Coder files
 .claude
+.codex
 .opencode
 .roo
 agents/*
