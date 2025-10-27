@@ -33,6 +33,7 @@ class IssueListScreen(Screen):
     BINDINGS = [
         ("n", "new_issue", "New Issue"),
         ("enter", "view_detail", "View Details"),
+        ("v", "view_detail", "View Details"),
         ("d", "delete_issue", "Delete Issue"),
         ("delete", "delete_issue", "Delete Issue"),
         ("r", "run_workflow", "Run Workflow"),
@@ -1306,7 +1307,7 @@ class HelpScreen(ModalScreen):
 
 ### Issue List
 - **n**: Create new issue
-- **Enter**: View issue details
+- **Enter/v**: View issue details
 - **d/Delete**: Delete issue (pending issues only)
 - **r**: Run workflow on selected issue
 - **w**: View all active workflows
