@@ -462,3 +462,55 @@ def test_comments_section_visible_for_completed_issue(mock_issue_completed, mock
 
     # Verify comments widget was updated
     mock_comments_widget.update_comments.assert_called_once_with(mock_comments)
+
+
+# Tests for 'v' Key Binding
+
+
+def test_v_key_triggers_view_detail():
+    """Test that 'v' key binding triggers action_view_detail method."""
+    from cape_cli.tui import IssueListScreen
+
+    # Create screen instance
+    screen = IssueListScreen()
+
+    # Verify 'v' key is in bindings
+    binding_keys = [binding[0] for binding in screen.BINDINGS]
+    assert "v" in binding_keys
+
+    # Verify 'v' maps to 'view_detail' action
+    v_binding = next(b for b in screen.BINDINGS if b[0] == "v")
+    assert v_binding[1] == "view_detail"
+    assert v_binding[2] == "View Details"
+
+
+def test_enter_key_still_works():
+    """Test that existing 'enter' key binding still works after adding 'v'."""
+    from cape_cli.tui import IssueListScreen
+
+    # Create screen instance
+    screen = IssueListScreen()
+
+    # Verify 'enter' key is still in bindings
+    binding_keys = [binding[0] for binding in screen.BINDINGS]
+    assert "enter" in binding_keys
+
+    # Verify 'enter' still maps to 'view_detail' action
+    enter_binding = next(b for b in screen.BINDINGS if b[0] == "enter")
+    assert enter_binding[1] == "view_detail"
+    assert enter_binding[2] == "View Details"
+
+
+def test_both_keys_map_to_same_action():
+    """Test that both 'enter' and 'v' map to the same action."""
+    from cape_cli.tui import IssueListScreen
+
+    screen = IssueListScreen()
+
+    # Get bindings for both keys
+    enter_binding = next(b for b in screen.BINDINGS if b[0] == "enter")
+    v_binding = next(b for b in screen.BINDINGS if b[0] == "v")
+
+    # Verify they map to the same action
+    assert enter_binding[1] == v_binding[1]
+    assert enter_binding[1] == "view_detail"
