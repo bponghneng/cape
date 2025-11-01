@@ -9,9 +9,9 @@ Create a new implementation plan for a new feature using the exact specified mar
 ## Instructions
 
 - IMPORTANT: You're writing a plan to implement a feature that will add value to the application.
-- IMPORTANT: The `Feature` describes the work that must be done, but remember that we're not implementing the feature yet. We're creating the plan using the `Plan Format` below.
+- IMPORTANT: The `Feature` describes the work that must be done, but your task is not implementing the feature yet. Your job is to create the plan using the `Plan Format` below.
 - Research the codebase to determine the problem specified in the `Feature` and identify the best solution.
-- Use the `research-specialist` and `react-native-architect` agents to research the feature. Follow the `Research Methods` to focus your research.
+- Follow the `Research Methods` to focus your research.
 - Use the `taskmaster` agent to break down the solution into a plan with actionable work increments that can be completed in 1-2 days by a single engineer.
 - Create the plan in the `./specs/` directory using the following naming convention: `./specs/feature-<feature name>-plan.md`.
 - Use the `Plan Format` below to create the plan.
