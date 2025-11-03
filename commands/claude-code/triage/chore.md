@@ -4,24 +4,24 @@ description: Triage a chore for immediate implementation. For chore planning, us
 
 # Triage a Chore for Immediate Implementation
 
-Create a new implementation plan for a codebase chore using the exact specified markdown `Plan Format`. Follow the `Instructions` to conduct the research and create the plan. Focus on `Relevant Files` listed in `README.md`. 
+Create a new implementation plan for a codebase chore using the exact specified markdown `Plan Format`. Follow the `Instructions` to conduct the research and create the plan. Focus on `Relevant Files` listed in `README.md`.
 
 ## Instructions
 
 - IMPORTANT: You're writing a plan to resolve a codebase chore that will add value to the application.
 - IMPORTANT: The `Chore` describes the work that must be done, but remember that we're not implementing the chore yet. We're creating the plan using the `Plan Format` below.
 - Research the codebase to determine the problem specified in the `Chore` and identify the best solution.
-- Use the `research-specialist` and `react-native-architect` agents to research the chore. Follow the `Research Methods` to focus your research.
+- Follow the `Research Methods` to focus your research.
 - Use the `taskmaster` agent to break down the solution into a plan with actionable work increments that can be completed in 1-2 days by a single engineer.
 - Create the plan in the `./specs/` directory using the following naming convention: `./specs/chore-<chore name>-plan.md`.
 - Use the `Plan Format` below to create the plan.
 - IMPORTANT: Replace every <placeholder> in the `Plan Format` with the requested value. Add as much detail as needed to implement the chore successfully.
 - Instructions for subagents:
-    - Use your reasoning model: THINK HARD about the chore requirements, design and implementation approach.
-    - Start your work by reading the `CLAUDE.md` and `README.md` files.
-    - Follow existing patterns and conventions in the codebase. Don't reinvent the wheel.
-    - Design for extensibility and maintainability, but remember to keep a simplicity mindset.
-    - Respect the `Relevant Files` listed in the `README.md`.
+  - Use your reasoning model: THINK HARD about the chore requirements, design and implementation approach.
+  - Start your work by reading the `CLAUDE.md` and `README.md` files.
+  - Follow existing patterns and conventions in the codebase. Don't reinvent the wheel.
+  - Design for extensibility and maintainability, but remember to keep a simplicity mindset.
+  - Respect the `Relevant Files` listed in the `README.md`.
 
 ## Research Method
 
@@ -52,17 +52,13 @@ Create a new implementation plan for a codebase chore using the exact specified 
 <list step by step tasks as h3 headers plus bullet points. use as many h3 headers as needed to implement the chore. Order matters, start with the foundational shared changes required then move on to the specific implementation. Include creating tests throughout the implementation process. Each increment should be a complete unit of work that can be completed in 1-2 days by a single engineer. Your last step should be running the `Validation Commands` to validate the chore works correctly with zero regressions.>
 
 ## Validation Commands
+
 Execute every command to validate the chore is complete with zero regressions.
 
 <list commands you'll use to validate with 100% confidence the chore is complete with zero regressions. every command must execute without errors so be specific about what you want to run to validate the chore is complete with zero regressions. Don't validate with curl commands.>
-- `cd ws2-mobile` - Change directory to the root of the codebase.
-- `npm run format` - Format the codebase.
-- `npm run lint` - Lint the codebase.
-- `npm run type-check` - Type check the codebase.
-- `npm run test` - Run the test suite.
-- `cd ..` - Change directory to workspace root.
 
 ## Notes
+
 <optionally list any additional notes, future considerations, or context that are relevant to the feature that will be helpful to the tech lead planning work increments>
 ```
 
@@ -76,8 +72,8 @@ Summarize the work you've done using the following JSON format:
 
 ```json
 {
-    "chore": "<chore name>",
-    "plan": "<plan file path>",
-    "summary": "<concise summary of the work you've done>"
+  "chore": "<chore name>",
+  "plan": "<plan file path>",
+  "summary": "<concise summary of the work you've done>"
 }
 ```

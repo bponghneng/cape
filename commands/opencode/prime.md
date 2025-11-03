@@ -1,53 +1,62 @@
 ---
 description: Read codebase context and build foundational knowledge
 tools: Task
-template: |
-  # /prime - Build Foundational Knowledge
+---
 
-  Use the **general-purpose** agent to quickly gather project context and return a concise summary.
+# /prime - Build Foundational Knowledge
 
-  ## Task Instructions for Subagent
+Use the **general-purpose** agent to quickly gather project context and return a concise summary.
 
-  You are tasked with gathering foundational project knowledge efficiently.
+## Task Instructions for Subagent
 
-  ### Files to Read (if they exist):
-  - README.md
-  - CLAUDE.md
-  - package.json (or requirements.txt, go.mod, Cargo.toml, Gemfile, etc.)
-  - .gitignore
+You are tasked with gathering foundational project knowledge efficiently.
 
-  ### Commands to Run:
-  - `ls -1` (root directory listing)
-  - `git ls-files | head -50` (sample of tracked files)
+### Files to Read (if they exist):
 
-  ### Your Output
+- README.md
+- CLAUDE.md
+- package.json (or requirements.txt, go.mod, Cargo.toml, Gemfile, etc.)
+- .gitignore
 
-  Provide a **concise structured summary** (under 500 words) covering:
+### Commands to Run:
 
-  #### 1. Project Overview (2-3 sentences)
-  - What it does and problem it solves
-  - Key features or capabilities
+- `ls -1` (root directory listing)
+- `git ls-files | head -50` (sample of tracked files)
 
-  #### 2. Technology Stack (3-5 bullet points)
-  - Primary language(s) and framework(s)
-  - Major dependencies (list 3-5 most important)
-  - Build/run tooling
+### Your Output
 
-  #### 3. Code Organization (3-5 bullet points)
-  - Main directories and their purposes
-  - Entry points (if obvious from structure)
-  - Key configuration files present
+Provide a **concise structured summary** (under 500 words) covering:
 
-  #### 4. Development Context (2-4 bullet points)
-  - Coding conventions or standards (from CLAUDE.md)
-  - Common workflows or commands
-  - Any critical setup notes
+#### 1. Project Overview (2-3 sentences)
 
-  ### Constraints:
-  - Minimize reading source code files
-  - Minimize searching for patterns across the codebase
-  - Minimize analysis of code relationships or architecture
-  - Use directory structure and config files to infer organization
-  - Keep the summary concise and actionable
-  - Focus on information needed to start working effectively
+- What it does and problem it solves
+- Key features or capabilities
+
+#### 2. Technology Stack (3-5 bullet points)
+
+- Primary language(s) and framework(s)
+- Major dependencies (list 3-5 most important)
+- Build/run tooling
+
+#### 3. Code Organization (3-5 bullet points)
+
+- Main directories and their purposes
+- Entry points (if obvious from structure)
+- Key configuration files present
+
+#### 4. Development Context (2-4 bullet points)
+
+- Coding conventions or standards (from CLAUDE.md)
+- Common workflows or commands
+- Any critical setup notes
+
+### Constraints:
+
+- Minimize reading source code files
+- Minimize searching for patterns across the codebase
+- Minimize analysis of code relationships or architecture
+- Use directory structure and config files to infer organization
+- Keep the summary concise and actionable
+- Focus on information needed to start working effectively
+
 ---
