@@ -1,6 +1,5 @@
 ---
-description: <description>
-allowed-tools: <allowed-tools>
+description: Format generated plan into an exactly formatted chore plan for ADW implementation.
 thinking: true
 ---
 
