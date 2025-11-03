@@ -10,18 +10,24 @@
 """
 create-symlinks.py
 
-Creates symlinks from the cape repository to a target directory.
+Creates symlinks and copies files from cape repository to a target directory.
 
-This script creates symbolic links from the cape repository to a target directory:
-- Agent files (.md): agents/claude-code -> .claude/agents, agents/opencode -> .opencode/agent
-- Hook files: hooks/claude-code -> .claude/hooks
-- Command files: commands/claude-code -> .claude/commands, commands/opencode -> .opencode/command, commands/roo -> .roo/commands
-- Documentation: ai_docs -> ai_docs
+This script creates symbolic links and file copies from cape repository to a target directory:
+- Agent files (.md): agents/claude-code -> .claude/agents, agents/opencode -> .opencode/agent (symlinks)
+- Hook files: hooks/claude-code -> .claude/hooks (symlinks)
+- Command files: 
+  - commands/claude-code -> .claude/commands (symlinks)
+  - commands/opencode -> .opencode/command (symlinks)
+  - commands/roo -> .roo/commands (copies - no admin required on Windows)
+  - commands/codex -> .codex/prompts (symlinks)
+  - commands/gemini -> .gemini/commands (symlinks)
+- Documentation: ai_docs -> ai_docs (symlinks)
 
-Creates parent directories automatically and replaces existing symlinks.
+Creates parent directories automatically and replaces existing symlinks/copies.
 Preserves existing regular directories and files.
 
-NOTE: On Windows, requires administrator privileges to create symbolic links.
+NOTE: On Windows, requires administrator privileges for symlink operations only.
+Roo commands are copied (not symlinked) to avoid elevation requirements.
 """
 
 import os
@@ -47,42 +53,43 @@ REQUIRED_DIRS = ["agents", "hooks", "commands", "scripts"]
 
 
 @dataclass
-class SymlinkMapping:
-    """Configuration for symlink mappings."""
+class FileMapping:
+    """Configuration for file mappings (symlink or copy)."""
 
     source_dir: str
     target_base: str
     pattern: str
     label: str
     recursive: bool = False
+    use_copy: bool = False
 
 
-# Configurable symlink mappings
-SYMLINK_CONFIG = [
-    SymlinkMapping(
+# Configurable file mappings
+FILE_CONFIG = [
+    FileMapping(
         "agents/claude-code", ".claude/agents", "*.md", "Agents", recursive=False
     ),
-    SymlinkMapping(
+    FileMapping(
         "agents/opencode", ".opencode/agent", "*.md", "Agents", recursive=False
     ),
-    SymlinkMapping("hooks/claude-code", ".claude/hooks", "*", "Hooks", recursive=True),
-    SymlinkMapping(
+    FileMapping("hooks/claude-code", ".claude/hooks", "*", "Hooks", recursive=True),
+    FileMapping(
         "commands/claude-code", ".claude/commands", "*", "Commands", recursive=True
     ),
-    SymlinkMapping("commands/roo", ".roo/commands", "*", "Commands", recursive=True),
-    SymlinkMapping(
+    FileMapping("commands/roo", ".roo/commands", "*", "Commands", recursive=True, use_copy=True),
+    FileMapping(
         "commands/opencode", ".opencode/command", "*.md", "Commands", recursive=True
     ),
-    SymlinkMapping(
+    FileMapping(
         "commands/codex", ".codex/prompts", "*.md", "Prompts", recursive=True
     ),
-    SymlinkMapping(
+    FileMapping(
         "commands/gemini", ".gemini/commands", "*", "Commands", recursive=True
     ),
 ]
 
 # AI documentation mapping (conditionally included)
-AI_DOCS_CONFIG = SymlinkMapping(
+AI_DOCS_CONFIG = FileMapping(
     "ai_docs", "ai_docs", "*.md", "AI docs", recursive=False
 )
 
@@ -90,6 +97,15 @@ AI_DOCS_CONFIG = SymlinkMapping(
 @dataclass
 class SymlinkOperation:
     """Represents a single symlink operation to be performed."""
+
+    source_path: Path
+    target_path: Path
+    description: str
+
+
+@dataclass
+class CopyOperation:
+    """Represents a single copy operation to be performed."""
 
     source_path: Path
     target_path: Path
@@ -192,6 +208,57 @@ def find_files(source_path: Path, pattern: str, recursive: bool) -> list[Path]:
     else:
         # For non-recursive, use glob to get only files (matches *.md pattern usage)
         return [f for f in source_path.glob(pattern) if f.is_file()]
+
+
+def create_copy(
+    repo_root: Path,
+    target_dir: Path,
+    source_rel: str,
+    target_rel: str,
+    description: str,
+    collect_for_batch: bool = False,
+) -> CopyOperation | OperationResult:
+    """
+    Create a file copy or collect it for batch execution.
+
+    If collect_for_batch is True, returns CopyOperation for later batch execution.
+    Otherwise, executes immediately and returns OperationResult.
+    """
+    source_path = repo_root / source_rel
+    target_path = target_dir / target_rel
+
+    # Verify source exists
+    if not source_path.exists():
+        return OperationResult(False, f"Source missing: {source_path}")
+
+    # If collecting for batch, return operation
+    if collect_for_batch:
+        return CopyOperation(
+            source_path=source_path, target_path=target_path, description=description
+        )
+
+    # Execute immediately
+    # Create parent directory
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Handle existing target
+    if target_path.exists() or target_path.is_symlink():
+        if target_path.is_symlink():
+            # Remove symlink and replace with copy
+            target_path.unlink()
+        elif target_path.is_dir():
+            # It's a directory, skip
+            return OperationResult(
+                False, f"Target directory exists, skipping: {target_path}"
+            )
+        # It's a file - will be overwritten by copy2
+
+    # Perform copy
+    try:
+        shutil.copy2(source_path, target_path)
+        return OperationResult(True, description)
+    except (OSError, shutil.Error) as e:
+        return OperationResult(False, f"{description} failed: {e}")
 
 
 def create_symlink(
@@ -411,6 +478,36 @@ def execute_symlink_batch_elevated(
             pass
 
 
+def execute_copy_direct(operation: CopyOperation) -> OperationResult:
+    """
+    Execute a copy operation directly.
+    """
+    target_path = operation.target_path
+    source_path = operation.source_path
+
+    # Create parent directory
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Handle existing target
+    if target_path.exists() or target_path.is_symlink():
+        if target_path.is_symlink():
+            # Remove symlink and replace with copy
+            target_path.unlink()
+        elif target_path.is_dir():
+            # It's a directory, skip
+            return OperationResult(
+                False, f"Target directory exists, skipping: {target_path}"
+            )
+        # It's a file - will be overwritten by copy2
+
+    # Perform copy
+    try:
+        shutil.copy2(source_path, target_path)
+        return OperationResult(True, operation.description)
+    except (OSError, shutil.Error) as e:
+        return OperationResult(False, f"{operation.description} failed: {e}")
+
+
 def execute_symlink_direct(operation: SymlinkOperation) -> OperationResult:
     """
     Execute a symlink operation directly (for non-Windows or already elevated).
@@ -448,14 +545,15 @@ def execute_symlink_direct(operation: SymlinkOperation) -> OperationResult:
 def process_mapping(
     repo_root: Path,
     target_dir: Path,
-    mapping: SymlinkMapping,
+    mapping: FileMapping,
     collect_for_batch: bool = False,
-) -> tuple[list[SymlinkOperation], list[OperationResult]]:
+) -> tuple[list[SymlinkOperation], list[CopyOperation], list[OperationResult]]:
     """
-    Process a symlink mapping configuration.
+    Process a file mapping configuration.
 
-    Returns (operations, results) tuple where:
-    - operations: List of SymlinkOperation objects to be batched (if collect_for_batch=True)
+    Returns (symlink_ops, copy_ops, results) tuple where:
+    - symlink_ops: List of SymlinkOperation objects to be batched (if collect_for_batch=True)
+    - copy_ops: List of CopyOperation objects to be batched (if collect_for_batch=True)
     - results: List of OperationResult objects from immediate execution (if collect_for_batch=False)
     """
     source_path = repo_root / mapping.source_dir
@@ -464,7 +562,7 @@ def process_mapping(
         console.print(
             f"[yellow]Warning: {mapping.label} directory not found: {source_path}[/yellow]"
         )
-        return ([], [])
+        return ([], [], [])
 
     if not collect_for_batch:
         console.print(f"Processing {mapping.label}...")
@@ -472,7 +570,8 @@ def process_mapping(
     # Find files matching pattern
     files = find_files(source_path, mapping.pattern, mapping.recursive)
 
-    operations = []
+    symlink_operations = []
+    copy_operations = []
     results = []
 
     for file_path in files:
@@ -482,27 +581,48 @@ def process_mapping(
         target_rel = str(Path(mapping.target_base) / relative_path)
         description = f"{mapping.label}: {relative_path}"
 
-        result = create_symlink(
-            repo_root,
-            target_dir,
-            source_rel,
-            target_rel,
-            description,
-            collect_for_batch,
-        )
+        if mapping.use_copy:
+            result = create_copy(
+                repo_root,
+                target_dir,
+                source_rel,
+                target_rel,
+                description,
+                collect_for_batch,
+            )
 
-        if isinstance(result, SymlinkOperation):
-            operations.append(result)
+            if isinstance(result, CopyOperation):
+                copy_operations.append(result)
+            else:
+                # It's an OperationResult
+                results.append(result)
+                if not collect_for_batch:
+                    if result.success:
+                        console.print(f"[green]✓ {result.message}[/green]")
+                    else:
+                        console.print(f"[yellow]Warning: {result.message}[/yellow]")
         else:
-            # It's an OperationResult
-            results.append(result)
-            if not collect_for_batch:
-                if result.success:
-                    console.print(f"[green]✓ {result.message}[/green]")
-                else:
-                    console.print(f"[yellow]Warning: {result.message}[/yellow]")
+            result = create_symlink(
+                repo_root,
+                target_dir,
+                source_rel,
+                target_rel,
+                description,
+                collect_for_batch,
+            )
 
-    return (operations, results)
+            if isinstance(result, SymlinkOperation):
+                symlink_operations.append(result)
+            else:
+                # It's an OperationResult
+                results.append(result)
+                if not collect_for_batch:
+                    if result.success:
+                        console.print(f"[green]✓ {result.message}[/green]")
+                    else:
+                        console.print(f"[yellow]Warning: {result.message}[/yellow]")
+
+    return (symlink_operations, copy_operations, results)
 
 
 def handle_env_sample(repo_root: Path, target_dir: Path, force: bool) -> None:
@@ -546,10 +666,11 @@ def main(
     ),
 ) -> None:
     """
-    Create symlinks from the cape repository to TARGET_DIR.
+    Create symlinks and copies from cape repository to TARGET_DIR.
 
-    This script creates symbolic links for agents, hooks, commands, and optionally AI documentation
-    from the cape repository to your target directory.
+    This script creates symbolic links for most directories and copies for Roo commands
+    from cape repository to your target directory. Roo commands are copied to avoid
+    Windows administrator requirements.
 
     Examples:
 
@@ -576,40 +697,75 @@ def main(
     # Determine if we need batch elevation
     should_batch = needs_elevation()
 
-    # Process all symlink mappings
-    all_operations = []
+    # Process all file mappings
+    all_symlink_operations = []
+    all_copy_operations = []
     all_results = []
     hooks_created = False
 
     if should_batch:
-        console.print("[cyan]Collecting symlink operations...[/cyan]")
+        console.print("[cyan]Collecting file operations...[/cyan]")
         console.print()
 
-    for mapping in SYMLINK_CONFIG:
-        operations, results = process_mapping(
-            repo_root, target_path, mapping, collect_for_batch=should_batch
-        )
-        all_operations.extend(operations)
-        all_results.extend(results)
+    # Execute copy operations immediately (no elevation needed)
+    console.print("[cyan]Processing copy operations...[/cyan]")
+    for mapping in FILE_CONFIG:
+        if mapping.use_copy:
+            symlink_ops, copy_ops, results = process_mapping(
+                repo_root, target_path, mapping, collect_for_batch=False
+            )
+            all_copy_operations.extend(copy_ops)
+            all_results.extend(results)
 
-    # Process AI docs if requested
-    if include_ai_docs:
-        operations, results = process_mapping(
-            repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=should_batch
-        )
-        all_operations.extend(operations)
-        all_results.extend(results)
+    # Process symlink mappings (may need elevation)
+    if should_batch:
+        for mapping in FILE_CONFIG:
+            if not mapping.use_copy:
+                symlink_ops, copy_ops, results = process_mapping(
+                    repo_root, target_path, mapping, collect_for_batch=True
+                )
+                all_symlink_operations.extend(symlink_ops)
+                all_results.extend(results)
+
+        # Process AI docs if requested
+        if include_ai_docs:
+            symlink_ops, copy_ops, results = process_mapping(
+                repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=True
+            )
+            all_symlink_operations.extend(symlink_ops)
+            all_results.extend(results)
+        else:
+            console.print(
+                "[yellow]Skipping AI documentation (use --include-ai-docs to enable)[/yellow]"
+            )
     else:
-        if not should_batch:
+        # Execute symlink operations immediately
+        console.print("[cyan]Processing symlink operations...[/cyan]")
+        for mapping in FILE_CONFIG:
+            if not mapping.use_copy:
+                symlink_ops, copy_ops, results = process_mapping(
+                    repo_root, target_path, mapping, collect_for_batch=False
+                )
+                all_symlink_operations.extend(symlink_ops)
+                all_results.extend(results)
+
+        # Process AI docs if requested
+        if include_ai_docs:
+            symlink_ops, copy_ops, results = process_mapping(
+                repo_root, target_path, AI_DOCS_CONFIG, collect_for_batch=False
+            )
+            all_symlink_operations.extend(symlink_ops)
+            all_results.extend(results)
+        else:
             console.print(
                 "[yellow]Skipping AI documentation (use --include-ai-docs to enable)[/yellow]"
             )
 
-    # Execute batch operations if needed
-    if should_batch and all_operations:
+    # Execute batch symlink operations if needed
+    if should_batch and all_symlink_operations:
         console.print()
-        console.print(f"[cyan]Found {len(all_operations)} symlinks to create.[/cyan]")
-        batch_results = execute_symlink_batch_elevated(all_operations, force)
+        console.print(f"[cyan]Found {len(all_symlink_operations)} symlinks to create.[/cyan]")
+        batch_results = execute_symlink_batch_elevated(all_symlink_operations, force)
         all_results.extend(batch_results)
 
         # Display batch results
@@ -632,7 +788,7 @@ def main(
 
     console.print()
     console.print("=" * 30)
-    console.print("Symlink creation complete!")
+    console.print("File operations complete!")
 
     if success_all == total_all and total_all > 0:
         console.print(f"[green]Success: {success_all}/{total_all} operations[/green]")
