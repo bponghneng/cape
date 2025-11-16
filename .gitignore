@@ -55,3 +55,6 @@ WARP.md
 # Secret files
 .secret/
 .env
+
+# Logs
+app/.cape
