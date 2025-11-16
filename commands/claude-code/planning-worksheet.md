@@ -5,20 +5,39 @@ allowed-tools: Read
 thinking: true
 ---
 
-## Context
+# Planning Worksheet
 
-- Current conversation: Use the active chat context as the primary source of truth (no external file references).
-- Additional notes (from args): "$ARGUMENTS"
+Compile a planning worksheet of two documents:
+- What and why
+- How
+
+Source the active chat context as the primary source of truth. IMPORTANT: Don't use any external file references. Include `Additional Context` if submitted.
+
+## Instructions
+
+Using the `Template A` and `Template B` below, the current chat context and any `Additional Context` submitted:
+
+1. Produce TWO completed Markdown documents:
+   - Document 1: What and Why (Template A)
+   - Document 2: How: Implementation Plan (Template B)
+2. Extract Intent, Value, and Signals of success from the conversation for Document 1. Keep them concise.
+3. For Document 2, outline Constraints & principles and Unknowns & assumptions.
+   - Use [NEEDS CLARIFICATION: ...] for any ambiguity rather than guessing.
+4. Provide a brief Approach sketch aligned to the conversation context.
+5. Set an appropriate Execution cadence (e.g., “Generic phases” or “Add QA checkpoint prior to release”).
+6. Fill Logistics with any IDs/owners/links mentioned in the conversation. If not present, leave placeholders.
+7. If "$ARGUMENTS" is provided, incorporate them as clarifying notes or into relevant sections of either document.
+8. Output only the two completed Markdown documents. Do not include commentary, the raw template, or extra prose.
 
 ## Project Context
 
-@CLAUDE.md
+@AGENTS.md
 
 ## Template
 
 Use exactly these two structures when producing the final output; do not include this Template section in your response:
 
-Template A — What and Why
+### Template A — What and Why
 
 ```markdown
 # <Feature, Chore or Bugfix Title>
@@ -40,7 +59,7 @@ Template A — What and Why
 - <Measurable or acceptance statement #2>
 ```
 
-Template B — How: Implementation Plan
+### Template B — How: Implementation Plan
 
 ```markdown
 # <Feature, Chore or Bugfix Title>
@@ -85,23 +104,7 @@ Template B — How: Implementation Plan
 - <Pointers to context, prior art, or references>
 ```
 
-# Your Task
-
-Using the templates above and the current conversation:
-
-1. Produce TWO completed Markdown documents:
-   - Document 1: What and Why (Template A)
-   - Document 2: How: Implementation Plan (Template B)
-2. Extract Intent, Value, and Signals of success from the conversation for Document 1. Keep them concise.
-3. For Document 2, outline Constraints & principles and Unknowns & assumptions.
-   - Use [NEEDS CLARIFICATION: ...] for any ambiguity rather than guessing.
-4. Provide a brief Approach sketch aligned to the conversation context.
-5. Set an appropriate Execution cadence (e.g., “Generic phases” or “Add QA checkpoint prior to release”).
-6. Fill Logistics with any IDs/owners/links mentioned in the conversation. If not present, leave placeholders.
-7. If "$ARGUMENTS" is provided, incorporate them as clarifying notes or into relevant sections of either document.
-8. Output only the two completed Markdown documents. Do not include commentary, the raw template, or extra prose.
-
-# Output Format
+## Output Format
 
 Return TWO Markdown documents, in this order:
 
@@ -112,3 +115,7 @@ Return TWO Markdown documents, in this order:
    - Optional: Risks & mitigations, Scope (in/out), Notes & links
 
 Do not include commentary, the raw templates, or extra prose. Separate the two documents with a blank line and a line containing only `---`, or return them as two distinct Markdown blocks if supported.
+
+## Additional Context
+
+$ARGUMENTS

@@ -14,7 +14,12 @@ The repo has evolved sensibly to satisfy smaller-scale ambitions: a collection o
 2. **Use:** [Command Templates](./templates/) for common development tasks
 3. **Reference:** [Context Engineering Knowledge Base](./ai_docs/) - curated documentation for AI coding tools
 4. **Adapt:** Components to your preferred AI coding workflow
-5. **Setup:** Use the symlinking script to integrate assets into your AI tool configurations
+5. **Setup:** Use the provided installer scripts to integrate assets into your AI tool configurations
+
+## Utility Scripts
+
+- `scripts/install-coders.py`: Creates the symlink/copied layout expected by the various AI coding tools (Claude, OpenCode, Roo, Codex, Gemini). Run with uv from the repo root, e.g. `uv run scripts/install-coders.py ~/my-ai-config --force`.
+- `scripts/install-app.py`: Copies the full `cape/app/` package into a `cape/` subdirectory inside the destination folder. If `/absolute/path` is provided, the result is `/absolute/path/cape`. The script removes any existing destination (unless you decline) before performing a fresh copy: `uv run scripts/install-app.py /absolute/path --force`.
 
 ## Repository Contents
 
@@ -24,6 +29,10 @@ cape/
 │   ├── claude-code/          # Claude Code subagents
 │   └── opencode/             # OpenCode agent definitions
 ├── ai_docs/                  # AI coding assistant documentation
+├── app/                      # Python application package
+│   ├── src/                  # Cape application source code
+│   ├── tests/                # Automated tests for the app package
+│   └── README.md             # App-specific usage notes
 ├── commands/                 # Command templates for AI tools
 │   ├── claude-code/          # Commands for Claude Code
 │   ├── opencode/             # Commands for OpenCode
@@ -32,10 +41,12 @@ cape/
 │   └── claude-code/          # Hooks for Claude Code
 ├── methodology/              # Original workflow documentation
 ├── migrations/               # Database migration scripts
-├── scripts/                  # Utility scripts
+├── scripts/                  # Utility scripts (installers, helpers)
+│   ├── install-app.py        # Copies cape/app into a target/cape folder
+│   └── install-coders.py     # Sets up AI tooling folders via symlinks/copies
 ├── specs/                    # Specifications for new features
 ├── templates/                # Reusable templates
-└── workflows/                # Automated workflow scripts
+└── README.md                 # Project overview (this file)
 ```
 
 ## Available Assets
@@ -153,6 +164,10 @@ Check test coverage:
 ```bash
 pytest test_cape_tui.py --cov=cape_tui --cov-report=term-missing
 ```
+
+### Windows Test Exit Codes
+
+Running the `app` test suite via `uv run pytest -q` on Windows currently completes all tests successfully but still exits with code `1`. uv tears down its Windows console by raising a spurious `KeyboardInterrupt`, which pytest reports even though no tests fail. This is a known limitation—treat exit code `1` as success if the summary shows all tests passing.
 
 ### Architecture
 
