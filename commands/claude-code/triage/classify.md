@@ -15,7 +15,8 @@ Based on the `Work Item` below, read the `Instructions` to classify the issue by
 - CRITICAL: You are CLASSIFYING ONLY, not planning or implementing
 - Analyze the work item details to determine both the issue type and complexity level
 - Use the `Issue Type Guidelines` and `Complexity Level Guidelines` to make your determination
-- Respond exclusively with JSON in the `Output Format`
+- Respond exclusively with JSON in the `Output Format` **with zero extra text**
+- ABSOLUTELY NO prose, Markdown fences, explanations, or commentary—your entire reply must be a single JSON object
 - Think carefully about both dimensions before finalizing your classification
 - DO NOT launch research, planning, or implementation workflows
 - DO NOT suggest solutions or create implementation plans
@@ -95,14 +96,16 @@ Based on the `Work Item` below, read the `Instructions` to classify the issue by
 
 ## Output Format
 
-Respond with JSON in this exact format:
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-```json
-{
-  "type": "bug|chore|feature",
-  "level": "simple|average|complex|critical"
-}
-```
+{"type": "bug|chore|feature", "level": "simple|average|complex|critical"}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
+- Code fences (```)
+- Line breaks between the braces
+- Any text before or after the JSON
+- Markdown formatting
+- Explanations or commentary
 
 ## Work Item
 
