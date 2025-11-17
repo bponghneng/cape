@@ -2,7 +2,7 @@
 -- Description: Adds worker assignment functionality to enable multiple workers to process issues without conflicts
 
 -- Create enum type for worker IDs
-CREATE TYPE worker_id AS ENUM ('alleycat-1', 'tyderium-1');
+CREATE TYPE worker_id AS ENUM ('alleycat-1', 'tydirium-1');
 
 -- Add assigned_to column to track which worker is processing an issue
 ALTER TABLE cape_issues
