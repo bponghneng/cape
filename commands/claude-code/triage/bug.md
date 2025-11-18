@@ -1,74 +1,107 @@
 ---
-description: Triage a bug for immediate implementation.
+description: Triage a bug and produce a size-aware, simplicity-first implementation plan.
 ---
 
 # Triage a Bug for Immediate Implementation
 
-Create a new plan in specs/*.md to resolve the `Bug` using the exact specified markdown `Plan Format`. Follow the `Instructions` to create the plan. Focus on `Relevant Files` listed in `README.md`.
+Create a new implementation plan for a bug using the `Plan Format` below. The goal is to give an implementer just enough clarity to fix the bug confidently and surgically, while keeping the plan as small and simple as the bug allows.
 
 ## Instructions
 
-- IMPORTANT: You're writing a plan to resolve a bug that will add value to the application.
-- IMPORTANT: The `Bug` describes the bug that will be resolved but remember we're not resolving the bug, we're creating the plan that will be used to resolve the bug based on the `Plan Format` below.
-- You're writing a plan to resolve a bug. The plan should be thorough and precise so we fix the root cause and prevent regressions.
-- Create the plan in the `./specs/` directory using the following naming convention: `./specs/bug-<bug name>-plan.md`.
-- Use the `Plan Format` below to create the plan.
-- Research the codebase to understand the bug, reproduce it, and put together a plan to fix it.
-- IMPORTANT: Replace every <placeholder> in the `Plan Format` with the requested value. Add as much detail as needed to fix the bug.
-- Use your reasoning model: THINK HARD about the bug, its root cause, and the steps to fix it properly.
-- IMPORTANT: Be surgical with your bug fix, solve the bug at hand and don't fall off track.
-- IMPORTANT: We want the minimal number of changes that will fix and address the bug.
-- Start your work by reading the `CLAUDE.md` and `README.md` files.
-- Respect the `Relevant Files` listed in the `README.md`.
+- IMPORTANT: The `Bug` describes the behavior that must be corrected. You are not fixing it; you are creating an implementation plan.
+- First, decide whether this is a **small-change**, **medium-change**, or **large-refactor** bug and record that in the plan. Use that scope to right-size your research effort and the amount of detail.
+- Apply a **simplicity-first** mindset (see `mexican-train/CLAUDE.md`): prefer the smallest coherent change that fixes the bug, avoid unrelated refactors and premature abstractions, and keep dependencies minimal.
+- Research the codebase just enough to reliably reproduce the bug (or explain why it cannot be reproduced), understand the likely root cause, and outline a safe fix.
+- Use the `Research Method` section as guidance, not a checklist; you may skip steps that are clearly unnecessary for small bugs.
+- You may use subagents (`research-specialist`, `php-architect`, `taskmaster`) when helpful:
+  - `research-specialist` for external docs and best practices.
+  - `php-architect` for architecture / design questions in `mexican-train/api`, and especially for bugs that affect database schemas, migrations, or authentication flows.
+  - `taskmaster` to refine the implementation steps into increments of 1–2 days for a single engineer.
+- Create the plan in the `./specs/` directory using the naming convention: `./specs/bug-<bug-name>-plan.md` (use a lowercase, hyphenated bug name).
+- Replace every `<placeholder>` in the `Plan Format` with the requested value.
+- Follow existing patterns and conventions in the codebase. Do not invent new patterns unless necessary, and call out when you do.
+
+## Research Method
+
+- Start by reading `CLAUDE.md` and `README.md`, and any project-level instructions referenced there.
+- Clearly state where and how the bug manifests (feature area, environment, conditions) and what is explicitly out of scope.
+- Reproduce the bug if possible and document the most reliable reproduction steps. If reproduction is not possible, describe why and what evidence you are relying on.
+- Identify the smallest set of files and modules that are relevant to the bug. Understand how they currently behave and why they are likely involved in the root cause.
+- Consider whether any legacy patterns or workarounds contribute to the bug and how they should be handled (respected, adapted, or refactored).
+- For small bugs, keep research light and focused. For medium/large bugs, you may:
+  - Consult `research-specialist` for relevant external documentation or prior art.
+  - Consult `php-architect` for architectural implications and design options.
+- Propose test coverage only for critical paths touched by the bug fix. Focus on core behavior; avoid exhaustive edge-case enumeration.
+- Keep your analysis and recommendations as simple and concise as possible while still enabling a high-confidence fix.
 
 ## Plan Format
 
 ```md
-# Bug: <bug name>
+# Bug Plan: <bug name>
 
-## Bug Description
-<describe the bug in detail, including symptoms and expected vs actual behavior>
+## Task Context (Required)
 
-## Problem Statement
-<clearly define the specific problem that needs to be solved>
+- Scope: <small-change | medium-change | large-refactor>
+- Area: <api | app-ionic | app-old | shared | other>
+- Environment(s): <dev | staging | prod | test> (where the bug is observed)
+- Goal: <1–2 bullets describing what "fixed" means for this bug>
 
-## Solution Statement
-<describe the proposed solution approach to fix the bug>
+## Bug Description (Required)
 
-## Steps to Reproduce
-<list exact steps to reproduce the bug>
+<2–4 bullets describing the visible symptoms, expected vs actual behavior, and any relevant context (e.g., feature, user type, device).>
 
-## Root Cause Analysis
-<analyze and explain the root cause of the bug>
+## Steps to Reproduce (Required)
 
-## Relevant Files
-Use these files to fix the bug:
+<ordered list of steps to reproduce the bug. If the bug cannot be reproduced reliably, describe the best-known scenario and any uncertainty.>
 
-<find and list the files that are relevant to the bug describe why they are relevant in bullet points. If there are new files that need to be created to fix the bug, list them in an h3 'New Files' section.>
+## Root Cause Hypothesis (Required)
 
-## Step by Step Tasks
-IMPORTANT: Execute every step in order, top to bottom.
+<brief analysis of the likely root cause(s). Reference specific modules, functions, components, or queries when possible. Note any uncertainties that need to be resolved during implementation.>
 
-<list step by step tasks as h3 headers plus bullet points. use as many h3 headers as needed to fix the bug. Order matters, start with the foundational shared changes required to fix the bug then move on to the specific changes required to fix the bug. Include tests that will validate the bug is fixed with zero regressions. Your last step should be running the `Validation Commands` to validate the bug is fixed with zero regressions.>
+## Relevant Files (Required)
 
-## Validation Commands
-Execute every command to validate the bug is fixed with zero regressions.
+<list only the files that are relevant to understanding and fixing this bug and briefly describe why each is relevant.>
 
-<list commands you'll use to validate with 100% confidence the bug is fixed with zero regressions. every command must execute without errors so be specific about what you want to run to validate the bug is fixed with zero regressions. Don't validate with curl commands.>
-- `cd ws2-mobile` - Change directory to the root of the codebase.
-- `npm run format` - Format the codebase.
-- `npm run lint` - Lint the codebase.
-- `npm run type-check` - Type check the codebase.
-- `npm run test` - Run the test suite.
-- `cd ..` - Change directory to workspace root.
+#### New Files (Optional)
 
-## Notes
-<optionally list any additional notes or context that are relevant to the bug that will be helpful to the developer>
+<list any new files expected to be created for the fix, with a short note on their purpose.>
+
+## Implementation Plan (Required)
+
+<describe how to fix this bug in a way that matches the scope:>
+
+- For **small changes**, provide a single ordered list of 3–7 concrete steps.
+- For **medium/large bugs**, group steps into phases (e.g., "Phase 1", "Phase 2") with ordered lists under each.
+- Each step should be a unit of work that can be completed in 1–2 days by a single engineer.
+- Emphasize minimal, targeted changes that address the root cause while avoiding unrelated refactors.
+- Include where tests or validation are added or updated, but avoid over-specifying trivial details that can be left to the implementer’s judgement.
+
+## Validation (Required)
+
+Explain how to validate that the bug is fixed and that there are no obvious regressions.
+
+<list the commands to run (e.g., linting, targeted tests, or other existing project commands) and briefly state what each command is validating. Include any manual verification steps if they are important. Choose a level of validation that gives high confidence appropriate to the scope and risk of the bug. Avoid using raw curl commands for validation.>
+
+## Notes / Future Considerations (Optional)
+
+<optionally list any additional notes, follow-up ideas, or context that might inform future improvements or related bug fixes.>
+```
+
+For small-change bugs, keep the overall plan concise: fill in `Task Context`, `Bug Description`, `Steps to Reproduce`, `Root Cause Hypothesis`, `Relevant Files`, a short `Implementation Plan`, and minimal `Validation`. Use `Notes / Future Considerations` only when it clearly adds value.
+
+## Report
+
+Summarize the work you've done using the following JSON format:
+
+```json
+{
+  "bug": "<bug name>",
+  "plan": "<plan file path>",
+  "summary": "<concise summary of the work you've done>"
+}
 ```
 
 ## Bug
+
 $ARGUMENTS
 
-## Report
-- Summarize the work you've just done in a concise bullet point list.
-- Include a path to the plan you created in the `./specs/bug-<bug name>-plan.md` file.

@@ -1,70 +1,82 @@
 ---
-description: Triage a chore for immediate implementation. For chore planning, use the `triage/chore-plan` command.
+description: Triage a chore and produce a size-aware, simplicity-first implementation plan.
 ---
 
 # Triage a Chore for Immediate Implementation
 
-Create a new implementation plan for a codebase chore using the exact specified markdown `Plan Format`. Follow the `Instructions` to conduct the research and create the plan. Focus on `Relevant Files` listed in `README.md`.
+Create a new implementation plan for a codebase chore using the `Plan Format` below. The goal is to give an implementer just enough clarity to execute confidently, while keeping the plan as small and simple as the chore allows.
 
 ## Instructions
 
-- IMPORTANT: You're writing a plan to resolve a codebase chore that will add value to the application.
-- IMPORTANT: The `Chore` describes the work that must be done, but remember that we're not implementing the chore yet. We're creating the plan using the `Plan Format` below.
-- Research the codebase to determine the problem specified in the `Chore` and identify the best solution.
-- Follow the `Research Methods` to focus your research.
-- Use the `taskmaster` agent to break down the solution into a plan with actionable work increments that can be completed in 1-2 days by a single engineer.
-- Create the plan in the `./specs/` directory using the following naming convention: `./specs/chore-<chore name>-plan.md`.
-- Use the `Plan Format` below to create the plan.
-- IMPORTANT: Replace every <placeholder> in the `Plan Format` with the requested value. Add as much detail as needed to implement the chore successfully.
-- Instructions for subagents:
-  - Use your reasoning model: THINK HARD about the chore requirements, design and implementation approach.
-  - Start your work by reading the `CLAUDE.md` and `README.md` files.
-  - Follow existing patterns and conventions in the codebase. Don't reinvent the wheel.
-  - Design for extensibility and maintainability, but remember to keep a simplicity mindset.
-  - Respect the `Relevant Files` listed in the `README.md`.
+- IMPORTANT: The `Chore` describes the work that must be done. You are not implementing it; you are creating an implementation plan.
+- First, decide whether this is a **small-change**, **medium-change**, or **large-refactor** chore and record that in the plan. Use that scope to right-size your research effort and the amount of detail.
+- Apply a **simplicity-first** mindset (see `mexican-train/AGENTS.md`): prefer the smallest coherent change that solves the problem, avoid premature abstractions, and keep dependencies minimal.
+- Research the codebase just enough to understand the problem and a solid solution. For small changes, rely mainly on direct code inspection and existing docs; for larger refactors, plan for a deeper pass.
+- Use the `Research Method` section as guidance, not a checklist; you may skip steps that are clearly unnecessary for small chores.
+- You may use subagents (`research-specialist`, `php-architect`, `taskmaster`) when helpful:
+  - `research-specialist` for external docs and best practices.
+  - `php-architect` for architecture / design questions in `mexican-train/api`, and especially for chores that affect database schemas, migrations, or authentication flows.
+  - `taskmaster` to refine the implementation steps into increments of 1–2 days for a single engineer.
+- Create the plan in the `./specs/` directory using the naming convention: `./specs/chore-<chore-name>-plan.md` (use a lowercase, hyphenated chore name).
+- Replace every `<placeholder>` in the `Plan Format` with the requested value.
+- Follow existing patterns and conventions in the codebase. Do not invent new patterns unless necessary, and call out when you do.
 
 ## Research Method
 
-- Use the `research-specialist` subagent to identify best practices and patterns and to source documentation related to the chore.
-- Use the `react-native-architect` subagent to understand the architecture of the codebase, to detail existing implementations and to determine the best solution.
-- Clearly define the specific problem or opportunity the chore addresses.
-- Describe the proposed solution approach and how it solves the problem.
-- Find and list the files that are relevant to the chore implementation and understand why they are relevant.
-- Consider legacy patterns that may need to be refactored, alternate approaches or design patterns that may be more appropriate or context that is relevant to the chore that will be helpful to lead engineers planning work increments specific to this chore.
-- IMPORTANT: Propose test coverage to address only critical scenarios. Focus on core functionality. Avoid excessive testing of edge cases.
-- IMPORTANT: Remember the simplicity mindset when reporting the results of your research. Your analysis and recommendations should be as simple as possible. Be clear, concise and thorough.
+- Start by reading `CLAUDE.md`, `README.md`, `AGENTS.md`, and any project-level instructions referenced there.
+- Clearly state the specific problem or opportunity the chore addresses and what is explicitly out of scope.
+- Identify the smallest set of files and modules that are relevant to the chore. Understand how they currently work and why they matter.
+- Consider whether any legacy patterns need to be respected, adapted, or refactored for this chore.
+- For small chores, keep research light and focused. For medium/large refactors, you may:
+  - Consult `research-specialist` for relevant external documentation or prior art.
+  - Consult `php-architect` for architectural implications and design options.
+- Propose test coverage only for critical paths touched by the chore. Focus on core functionality; avoid exhaustive edge-case enumeration.
+- Keep your analysis and recommendations as simple and concise as possible while still enabling a high-confidence implementation.
 
 ## Plan Format
 
 ```md
 # Chore Plan: <chore name>
 
-## Description
+## Task Context (Required)
 
-<describe the chore in detail>
+- Scope: <small-change | medium-change | large-refactor>
+- Goal: <1–2 bullets describing the outcome of this chore>
+- Constraints: <any key assumptions, constraints, or dependencies (optional)>
 
-## Relevant Files
+## Description (Required)
 
-<find and list the files that are relevant to the increment. Describe why they are relevant in bullet points. If there are new files that need to be created for the increment, list them in an h4 'New Files' section.>
+<2–4 bullets describing the problem this chore solves, the desired outcome, and any important out-of-scope items.>
 
-## Step-by-Step Tasks
+## Relevant Files (Required)
 
-<list step by step tasks as h3 headers plus bullet points. use as many h3 headers as needed to implement the chore. Order matters, start with the foundational shared changes required then move on to the specific implementation. Include creating tests throughout the implementation process. Each increment should be a complete unit of work that can be completed in 1-2 days by a single engineer. Your last step should be running the `Validation Commands` to validate the chore works correctly with zero regressions.>
+<list only the files that are relevant to implementing this chore and briefly describe why each is relevant.>
 
-## Validation Commands
+#### New Files (Optional)
 
-Execute every command to validate the chore is complete with zero regressions.
+<list any new files that are expected to be created for this chore, with a short note on their purpose.>
 
-<list commands you'll use to validate with 100% confidence the chore is complete with zero regressions. every command must execute without errors so be specific about what you want to run to validate the chore is complete with zero regressions. Don't validate with curl commands.>
+## Implementation Plan (Required)
 
-## Notes
+<describe how to implement this chore in a way that matches the scope:>
 
-<optionally list any additional notes, future considerations, or context that are relevant to the feature that will be helpful to the tech lead planning work increments>
+- For **small changes**, provide a single ordered list of 3–7 concrete steps.
+- For **medium/large refactors**, group steps into phases (e.g., "Phase 1", "Phase 2") with ordered lists under each.
+- Each step should be a unit of work that can be completed in 1–2 days by a single engineer.
+- Include where tests or validation are added or updated, but avoid over-specifying trivial details that can be left to the implementer’s judgement.
+
+## Validation (Required)
+
+Explain how to validate that the chore is complete and has no obvious regressions.
+
+<list the commands to run (e.g., linting, targeted tests, or other existing project commands) and briefly state what each command is validating. Choose a level of validation that gives high confidence appropriate to the scope and risk of the chore. Avoid using raw curl commands for validation.>
+
+## Notes / Future Considerations (Optional)
+
+<optionally list any additional notes, follow-up ideas, or context that might inform future improvements or related chores.>
 ```
 
-## Chore
-
-$ARGUMENTS
+For small-change chores, keep the overall plan concise: fill in `Task Context`, `Description`, `Relevant Files`, a short `Implementation Plan`, and minimal `Validation`. Use `Notes / Future Considerations` only when it clearly adds value.
 
 ## Report
 
@@ -77,3 +89,7 @@ Summarize the work you've done using the following JSON format:
   "summary": "<concise summary of the work you've done>"
 }
 ```
+
+## Chore
+
+$ARGUMENTS
