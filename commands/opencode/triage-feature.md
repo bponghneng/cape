@@ -1,129 +1,108 @@
 ---
-description: Triage a feature into an implementation plan.
-agent: plan
-model: GLM-4.6
+description: Triage a feature and produce a size-aware, simplicity-first implementation plan.
 ---
 
 # Triage a Feature into an Implementation Plan
 
-Create a new implementation plan for a new feature using the exact specified markdown `Plan Format`. Follow the `Instructions` to conduct the research and create the plan. Focus on `Relevant Files` in `README.md`.
+Create a new implementation plan for a feature using the `Plan Format` below. The goal is to give an implementer just enough clarity to build the feature confidently, while keeping the plan as small and simple as the feature allows.
 
 ## Instructions
 
-- IMPORTANT: You're writing a plan to implement a feature that will add value to the application.
-- IMPORTANT: The `Feature` describes the work that must be done, but your task is not implementing the feature yet. Your job is to create the plan using the `Plan Format` below.
-- Research the codebase to determine the problem specified in the `Feature` and identify the best solution.
-- Follow the `Research Methods` to focus your research.
-- Use the `taskmaster` agent to break down the solution into a plan with actionable work increments that can be completed in 1-2 days by a single engineer.
-- Create the plan in the `./specs/` directory using the following naming convention: `./specs/feature-<feature name>-plan.md`.
-- Use the `Plan Format` below to create the plan.
-- IMPORTANT: Replace every <placeholder> in the `Plan Format` with the requested value. Add as much detail as needed to implement the feature successfully.
-- Instructions for subagents:
-  - Use your reasoning model: THINK HARD about the feature requirements, design and implementation approach.
-  - Start your work by reading the `CLAUDE.md` and `README.md` files.
-  - Follow existing patterns and conventions in the codebase. Don't reinvent the wheel.
-  - Design for extensibility and maintainability, but remember to keep a simplicity mindset.
-  - Respect the `Relevant Files` listed in the `README.md`.
+- IMPORTANT: The `Feature` describes the work that must be done. You are not implementing it; you are creating an implementation plan.
+- First, decide whether this is a **small-change**, **medium-change**, or **large-refactor** feature and record that in the plan. Use that scope to right-size your research effort and the amount of detail.
+- Apply a **simplicity-first** mindset (see `mexican-train/AGENTS.md`): prefer the smallest coherent implementation that delivers the desired value, avoid premature abstractions, and keep dependencies minimal.
+- Research the codebase just enough to understand the problem/opportunity, the affected areas, and a solid solution that fits existing patterns.
+- Use the `Research Method` section as guidance, not a checklist; you may skip steps that are clearly unnecessary for small features.
+- You may use subagents (`research-specialist`, `php-architect`, `taskmaster`) when helpful:
+  - `research-specialist` for external docs and best practices.
+  - `php-architect` for architecture / design questions in `mexican-train/api`, and especially for features that affect database schemas, migrations, or authentication flows.
+  - `taskmaster` to refine the implementation steps into increments of 1–2 days for a single engineer.
+- Create the plan in the `./specs/` directory using the naming convention: `./specs/feature-<feature-name>-plan.md` (use a lowercase, hyphenated feature name).
+- Replace every `<placeholder>` in the `Plan Format` with the requested value.
+- Follow existing patterns and conventions in the codebase. Do not invent new patterns unless necessary, and call out when you do.
 
 ## Research Method
 
-- Use the `research-specialist` subagent to identify best practices and patterns and to source documentation related to the feature.
-- Use the `react-native-architect` subagent to understand the architecture of the codebase, to detail existing implementations and to determine the best solution.
-- Clearly define the specific problem or opportunity the feature addresses.
-- Describe the proposed solution approach and how it solves the problem.
-- Find and list the files that are relevant to the feature implementation and understand why they are relevant.
-- IMPORTANT: Propose test coverage to address only critical scenarios. Focus on core functionality. Avoid excessive testing of edge cases.
-- Consider legacy patterns that may need to be refactored, alternate approaches or design patterns that may be more appropriate or context that is relevant to the feature that will be helpful to lead engineers planning work increments specific to this feature.
-- IMPORTANT: Remember the simplicity mindset when reporting the results of your research. Your analysis and recommendations should be as simple as possible. Be clear, concise and thorough.
+- Start by reading `AGENTS.md`, `README.md`, and any project-level instructions referenced there.
+- Clearly define the problem or opportunity the feature addresses, including which users it affects and why it matters.
+- Clarify any constraints (e.g., performance, compatibility, existing API contracts) and what is explicitly out of scope for this feature.
+- Identify the smallest set of files and modules that are relevant to the feature. Understand how they currently behave and how the feature will interact with them.
+- For small features, keep research light and focused. For medium/large features, you may:
+  - Consult `research-specialist` for relevant external documentation or prior art.
+  - Consult `php-architect` for architectural implications and design options.
+- Propose test coverage only for critical paths introduced or modified by the feature. Focus on core behavior; avoid exhaustive edge-case enumeration.
+- Keep your analysis and recommendations as simple and concise as possible while still enabling a high-confidence implementation.
 
 ## Plan Format
 
 ```md
-# Feature: <feature name>
+# Feature Plan: <feature name>
 
-## Description
+## Task Context (Required)
 
-<describe the feature in detail, including its purpose and value to users>
+- Scope: <small-change | medium-change | large-refactor>
+- Area: <api | app-ionic | app-old | shared | other>
+- Primary Users: <who this feature is for>
+- Goal: <1–3 bullets describing the outcome and value of this feature>
+- Constraints: <any key assumptions, constraints, or dependencies (optional)>
 
-## User Story
+## Description (Required)
 
-As a <type of user>
-I want to <action/goal>
+<2–4 bullets describing the feature, its purpose, and the value it delivers to users.>
+
+## User Story (Recommended)
+
+As a <type of user>  
+I want to <action/goal>  
 So that <benefit/value>
 
-## Problem Statement
+## Problem & Solution Overview (Required)
 
-<clearly define the specific problem or opportunity this feature addresses>
+### Problem
 
-## Solution Statement
+<clearly describe the problem or opportunity this feature addresses.>
 
-<describe the proposed solution approach and how it solves the problem>
+### Proposed Solution
 
-## Relevant Files
+<describe the high-level solution approach and how it solves the problem while fitting existing patterns.>
 
-Use these files to implement the feature.
+## Relevant Files (Required)
 
-<find and list the files that are relevant to the increment. Describe why they are relevant in bullet points. Include snippets for database migrations and schema, context modules and functions, controller methods, view modules and functions, API endpoint routes and other relevant code for the increment. If there are new files that need to be created for the increment, list them in an h4 'New Files' section.>
+<list only the files that are relevant to implementing this feature and briefly describe why each is relevant.>
 
-## Implementation Plan
+#### New Files (Optional)
 
-### Phase 1: Foundation
+<list any new files expected to be created for this feature, with a short note on their purpose.>
 
-<describe the foundational work needed before implementing the main feature>
+## Implementation Plan (Required)
 
-### Phase 2: Core Implementation
+<describe how to implement this feature in a way that matches the scope:>
 
-<describe the main implementation work for the feature>
+- For **small features**, provide a single ordered list of 3–7 concrete steps.
+- For **medium/large features**, group steps into phases (e.g., "Phase 1: Foundation", "Phase 2: Core Implementation", "Phase 3: Integration") with ordered lists under each.
+- Each step should be a unit of work that can be completed in 1–2 days by a single engineer.
+- Include where tests or validation are added or updated, but avoid over-specifying trivial details that can be left to the implementer’s judgement.
 
-### Phase 3: Integration
+## Testing & Validation Strategy (Required)
 
-<describe how the feature will integrate with existing functionality>
+<outline how to verify the feature works and does not introduce obvious regressions: unit tests, integration tests, and any key edge cases. Focus on critical paths and realistic usage scenarios, not exhaustive combinations.>
 
-## Step by Step Tasks
+## Acceptance Criteria (Required)
 
-IMPORTANT: Execute every step in order, top to bottom.
+<list specific, measurable criteria that must be met for the feature to be considered complete (e.g., behavior, performance, UX expectations).>
 
-<list step by step tasks as h3 headers plus bullet points. Use as many h3 headers as needed to implement the feature. Order matters, start with the foundational shared changes required then move on to the specific implementation. Include creating tests throughout the implementation process. Your last step should be running the `Validation Commands` to validate the feature works correctly with zero regressions.>
+## Validation (Required)
 
-## Testing Strategy
+Explain how to validate that the feature works as intended and that there are no obvious regressions.
 
-### Unit Tests
+<list the commands to run (e.g., linting, targeted tests, or other existing project commands) and briefly state what each command is validating. Include any manual verification steps (e.g., key user flows) if they are important. Choose a level of validation that gives high confidence appropriate to the scope and risk of the feature. Avoid using raw curl commands for validation.>
 
-<describe unit tests needed for the feature>
+## Notes / Future Considerations (Optional)
 
-### Integration Tests
-
-<describe integration tests needed for the feature>
-
-### Edge Cases
-
-<list edge cases that need to be tested>
-
-## Acceptance Criteria
-
-<list specific, measurable criteria that must be met for the feature to be considered complete>
-
-## Validation Commands
-
-Execute every command to validate the feature works correctly with zero regressions.
-
-<list commands you'll use to validate with 100% confidence the feature is implemented correctly with zero regressions. every command must execute without errors so be specific about what you want to run to validate the feature works as expected. Include commands to test the feature end-to-end.>
-
-- `cd ws2-mobile` - Change directory to the root of the codebase.
-- `npm run format` - Format the codebase.
-- `npm run lint` - Lint the codebase.
-- `npm run type-check` - Type check the codebase.
-- `npm run test` - Run the test suite.
-- `cd ..` - Change directory to workspace root.
-
-## Notes
-
-<optionally list any additional notes, future considerations, or context that are relevant to the feature that will be helpful to the tech lead planning work increments>
+<optionally list any additional notes, follow-up ideas, or context that might inform future improvements or related features.>
 ```
 
-## Feature
-
-$ARGUMENTS
+For small-change features, keep the overall plan concise: fill in `Task Context`, `Description`, a brief `User Story` (if applicable), `Problem & Solution Overview`, `Relevant Files`, a short `Implementation Plan`, and minimal `Testing & Validation` / `Acceptance Criteria`. Use `Notes / Future Considerations` only when it clearly adds value.
 
 ## Report
 
@@ -136,3 +115,7 @@ Summarize the work you've done using the following JSON format:
   "summary": "<concise summary of the work you've done>"
 }
 ```
+
+## Feature
+
+$ARGUMENTS
