@@ -84,7 +84,7 @@ Provide your standard structured report format:
 ### Guidelines
 
 - Apply your specialized expertise to the code changes
-- Reference project conventions from CLAUDE.md when relevant
+- Reference project conventions from AGENTS.md when relevant
 - Focus on changes shown in git diff, not entire files
 - Only read full files if there's a specific concern from the diff
 - Keep findings actionable and specific with line numbers/code snippets

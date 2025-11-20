@@ -14,7 +14,7 @@ You are tasked with gathering foundational project knowledge efficiently.
 ### Files to Read (if they exist):
 
 - README.md
-- CLAUDE.md
+- AGENTS.md
 - package.json (or requirements.txt, go.mod, Cargo.toml, Gemfile, etc.)
 - .gitignore
 
@@ -46,7 +46,7 @@ Provide a **concise structured summary** (under 500 words) covering:
 
 #### 4. Development Context (2-4 bullet points)
 
-- Coding conventions or standards (from CLAUDE.md)
+- Coding conventions or standards (from AGENTS.md)
 - Common workflows or commands
 - Any critical setup notes
 
