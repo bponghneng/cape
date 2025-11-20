@@ -8,6 +8,7 @@ Review a completed implementation against its plan and report whether the planâ€
 
 ## Input
 
+- Read `AGENTS.md` to align with the workspace structure and "Simplicity-First Mindset".
 - Treat `$ARGUMENTS` as the **relative path** to a single plan file to validate (for example, `specs/chore-phinx-migrations-setup-plan.md`).
 - Use that path to read the plan content (the file is included at the end of this prompt).
 - You may read additional files in the repository as needed to verify whether requirements are satisfied.

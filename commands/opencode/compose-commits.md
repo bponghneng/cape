@@ -48,10 +48,23 @@ For each group:
 - If changes span multiple unrelated features, create separate commits
 
 ## Report
-List all commits created with:
-- Full commit message
-- SHA hash
-- Files included
+
+Output the results as a single JSON object in the following format:
+
+```json
+{
+  "commits": [
+    {
+      "message": "type(scope): description",
+      "sha": "commit_hash",
+      "files": [
+        "file/path/1",
+        "file/path/2"
+      ]
+    }
+  ]
+}
+```
 
 ## Repository
 
