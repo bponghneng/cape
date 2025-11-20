@@ -6,7 +6,7 @@ Read workspace documentation and build a concise understanding of the codebases.
 
 ## Instructions
 
-- Read README.md and AGENTS.md
+- Read README.md and GEMINI.md
 - Run the following commands:
   - `ls -1` (*nix shell) or `ls | % Name` (PowerShell)
   - `git ls-files | head -50`
