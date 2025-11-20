@@ -24,7 +24,7 @@ from rich.console import Console
 
 console = Console()
 APP_DIR_NAME = "app"
-INSTALL_DIR_NAME = "cape"
+INSTALL_DIR_NAME = "cape-cli"
 EXCLUDED_APP_DIRS = {".cape", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv"}
 
 
