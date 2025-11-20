@@ -8,7 +8,8 @@ Use the automated review report below to drive a focused round of fixes or follo
 
 ## Instructions
 
-- Treat `$ARGUMENTS` as the full plain-text report produced by an automated reviewer (for example, CodeRabbit in plain text mode).
+- Read `AGENTS.md` to align with the workspace structure and "Simplicity-First Mindset".
+- Treat `$ARGUMENTS` as the full plain-text report produced by an automated reviewer (for example, `specs/chore-phinx-migrations-setup-review.md`).
 - Apply the workflow rules and simplicity-first guidelines from `mexican-train/AGENTS.md`:
   - Research first, then propose, then implement.
   - Prefer the smallest coherent change that solves each issue.
