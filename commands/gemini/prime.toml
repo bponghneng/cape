@@ -1,4 +1,4 @@
-description = "Generate a prime number of specified bit length"
+description = "Prime context for a new agent"
 prompt = """
 # Prime Foundational Knowledge
 

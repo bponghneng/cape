@@ -4,7 +4,7 @@ description: Execute a development plan
 
 # Implement Plan
 
-Follow the `Instructions` to implement the provided `Plan`, adhering to project standards, and `Report` the results in the specified JSON format.
+Follow the `Instructions` to implement the provided `Plan`, adhering to project standards. Report your results with the exact `Output Format`.
 
 ## Instructions
 
@@ -22,7 +22,7 @@ Follow the `Instructions` to implement the provided `Plan`, adhering to project 
     - Run `git diff --stat` to capture the changes.
     - Compile the work summary and file list.
 
-## Report
+## Output Format
 
 Output the results as a single JSON object in the following format:
 
@@ -33,6 +33,7 @@ Output the results as a single JSON object in the following format:
     "path/to/file1.ext",
     "path/to/file2.ext"
   ],
+  "path": "Relative path to the implemented plan file",
   "git_diff_stat": "Output string from git diff --stat",
   "status": "completed"
 }
