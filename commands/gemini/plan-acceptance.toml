@@ -1,0 +1,92 @@
+description = "Validate that an implementation matches its plan and report requirement status as JSON."
+prompt = """
+# Plan Acceptance Validation
+
+Review a completed implementation against its plan and report whether the plan’s requirements have been met.
+
+## Input
+
+- **Context**: Read `GEMINI.md` first. It contains critical information about the workspace structure (e.g., the `mexican-train/` subdirectory) and standard development commands.
+- **Plan**: Treat `{{args}}` as the **relative path** to a single plan file to validate. Read this file to understand the requirements.
+- **Scope**: You may read additional files in the repository to verify requirements.
+- **Safety**: This command is primarily **read-only** regarding code artifacts. Do not modify source code or configuration. However, you **SHOULD** run non-destructive validation commands (linters, tests, dry-run migrations) if they are part of the plan's validation steps.
+
+## Plan Structure to Expect
+
+Plans generally follow this structure:
+- `# <Plan Title>`
+- `## Task Context`
+- `## Description`
+- `## Relevant Files`
+- `## Implementation Plan`
+- `## Validation`
+- `## Notes / Future Considerations` (optional)
+
+The exact section titles may vary slightly; treat headings starting with `##` as section boundaries and infer intent from the content.
+
+## Deriving Requirements
+
+From the plan, derive a concrete list of requirements to check.
+- **Goal/Context**: High-level outcomes.
+- **Description**: Key functional additions.
+- **Files**: Expected file existence and roles.
+- **Implementation**: Specific steps taken.
+- **Validation**: Commands to run and their expected outputs.
+
+## Verification Approach
+
+1. **Determine Project Root**:
+   - Check `GEMINI.md` to confirm the project root (e.g., `mexican-train/`).
+   - Ensure all shell commands are executed from the correct directory where `docker-compose.yml` or `package.json` resides.
+   - **Crucial**: If `ls` shows a subdirectory like `mexican-train/`, you likely need to `cd` into it before running project commands.
+
+2. **Identify Evidence**:
+   - Map requirements to files or command outputs.
+
+3. **Execute Validation Commands**:
+   - **Mandatory**: If the plan lists validation commands (e.g., `docker compose exec ...`, `npm test`), you **must** attempt to run them to verify the requirement.
+   - **Context**: Ensure you are in the correct directory (see step 1).
+   - **Fallback**: If a command fails due to environment issues (e.g., Docker not running), mark the requirement as `unknown` and explicitly state the error in the `evidence` field. Do not guess.
+
+4. **Assign Status**:
+   - `met`: Confirmed via file inspection OR successful command execution.
+   - `not_met`: Evidence contradicts requirement OR command failed with logical error (e.g., test failure).
+   - `unknown`: Could not verify (e.g., missing environment, ambiguous requirement).
+
+5. **Determine blocking vs non-blocking**
+   - Consider requirements derived from **Goals**, **Constraints**, and **Validation** as blocking by default.
+   - Minor notes or optional future considerations may be treated as non-blocking.
+
+## Output (JSON Only)
+
+Your **entire** output must be a single valid JSON object.
+
+```json
+{
+  "plan_title": "Plan Title",
+  "status": "pass",
+  "summary": "Brief summary of findings.",
+  "requirements": [
+    {
+      "id": "req-1",
+      "section": "Section Name",
+      "description": "Requirement description.",
+      "status": "met",
+      "blocking": true,
+      "evidence": "Command 'composer test' passed."
+    }
+  ],
+  "unmet_blocking_requirements": [],
+  "notes": []
+}
+```
+
+- `status`: `pass` (all blocking met), `fail` (any blocking not_met), `partial` (blocking requirements unknown).
+
+## Plan to Validate
+
+- Plan file path: `{{args}}`
+- Plan file content:
+
+{{args}}
+"""
