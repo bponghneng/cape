@@ -5,7 +5,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from cape.core.models import AgentPromptResponse, CapeIssue
+from cape.core.agents.claude import ClaudeAgentPromptResponse
+from cape.core.models import CapeComment, CapeIssue
 from cape.core.notifications import insert_progress_comment
 from cape.core.workflow import (
     build_plan,
@@ -50,26 +51,40 @@ def test_update_status_failure(mock_update_issue_status, mock_logger):
     mock_logger.error.assert_called_once()
 
 
-@patch("cape.core.notifications.create_comment")
+@patch("cape.core.notifications.comments.create_comment")
 def test_insert_progress_comment_success(mock_create_comment):
     """Test successful progress comment insertion."""
     mock_comment = Mock()
     mock_comment.id = 1
     mock_create_comment.return_value = mock_comment
 
-    status, msg = insert_progress_comment(1, "Test comment")
+    comment = CapeComment(
+        issue_id=1,
+        comment="Test comment",
+        raw={},
+        source="test",
+        type="comment"
+    )
+    status, msg = insert_progress_comment(comment)
     assert status == "success"
     assert "Comment inserted: ID=1" in msg
     assert "Test comment" in msg
-    mock_create_comment.assert_called_once_with(1, "Test comment")
+    mock_create_comment.assert_called_once_with(comment)
 
 
-@patch("cape.core.notifications.create_comment")
+@patch("cape.core.notifications.comments.create_comment")
 def test_insert_progress_comment_failure(mock_create_comment):
     """Test progress comment insertion handles errors gracefully."""
     mock_create_comment.side_effect = Exception("Database error")
 
-    status, msg = insert_progress_comment(1, "Test comment")
+    comment = CapeComment(
+        issue_id=1,
+        comment="Test comment",
+        raw={},
+        source="test",
+        type="comment"
+    )
+    status, msg = insert_progress_comment(comment)
     assert status == "error"
     assert "Failed to insert comment on issue 1" in msg
     assert "Database error" in msg
@@ -78,7 +93,7 @@ def test_insert_progress_comment_failure(mock_create_comment):
 @patch("cape.core.workflow.execute_template")
 def test_classify_issue_success(mock_execute, mock_logger, sample_issue):
     """Test successful issue classification."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output='{"type": "feature", "level": "simple"}',
         success=True,
         session_id="test123",
@@ -93,7 +108,7 @@ def test_classify_issue_success(mock_execute, mock_logger, sample_issue):
 @patch("cape.core.workflow.execute_template")
 def test_classify_issue_failure(mock_execute, mock_logger, sample_issue):
     """Test issue classification failure."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output="Error occurred", success=False, session_id=None
     )
 
@@ -106,7 +121,7 @@ def test_classify_issue_failure(mock_execute, mock_logger, sample_issue):
 @patch("cape.core.workflow.execute_template")
 def test_classify_issue_invalid_command(mock_execute, mock_logger, sample_issue):
     """Test issue classification with invalid command."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output='{"type": "unsupported", "level": "simple"}',
         success=True,
         session_id="test123",
@@ -121,7 +136,7 @@ def test_classify_issue_invalid_command(mock_execute, mock_logger, sample_issue)
 @patch("cape.core.workflow.execute_template")
 def test_classify_issue_invalid_json(mock_execute, mock_logger, sample_issue):
     """Test classification with invalid JSON output."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output="not-json", success=True, session_id="test123"
     )
 
@@ -134,7 +149,7 @@ def test_classify_issue_invalid_json(mock_execute, mock_logger, sample_issue):
 @patch("cape.core.workflow.execute_template")
 def test_build_plan_success(mock_execute, mock_logger, sample_issue):
     """Test successful plan building."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output="Plan created successfully", success=True, session_id="test123"
     )
 
@@ -146,7 +161,7 @@ def test_build_plan_success(mock_execute, mock_logger, sample_issue):
 @patch("cape.core.workflow.execute_template")
 def test_get_plan_file_success(mock_execute, mock_logger):
     """Test successful plan file extraction."""
-    mock_execute.return_value = AgentPromptResponse(
+    mock_execute.return_value = ClaudeAgentPromptResponse(
         output="specs/feature-plan.md", success=True, session_id="test123"
     )
 
@@ -158,18 +173,20 @@ def test_get_plan_file_success(mock_execute, mock_logger):
 @patch("cape.core.workflow.execute_template")
 def test_get_plan_file_not_found(mock_execute, mock_logger):
     """Test plan file not found."""
-    mock_execute.return_value = AgentPromptResponse(output="0", success=True, session_id="test123")
+    mock_execute.return_value = ClaudeAgentPromptResponse(output="0", success=True, session_id="test123")
 
     file_path, error = get_plan_file("Plan output", 1, "adw123", mock_logger)
     assert file_path is None
     assert "No plan file found" in error
 
 
-@patch("cape.core.workflow.execute_template")
+@patch("cape.core.workflow.execute_implement_plan")
 def test_implement_plan_success(mock_execute, mock_logger):
     """Test successful plan implementation."""
-    mock_execute.return_value = AgentPromptResponse(
-        output="Implementation complete", success=True, session_id="test123"
+    mock_execute.return_value = Mock(
+        output="Implementation complete",
+        success=True,
+        session_id="test123",
     )
 
     response = implement_plan("specs/plan.md", 1, "adw123", mock_logger)
@@ -197,11 +214,11 @@ def test_execute_workflow_success(
     """Test successful complete workflow execution."""
     mock_fetch.return_value = sample_issue
     mock_classify.return_value = ("/triage:feature", {"type": "feature", "level": "simple"}, None)
-    mock_build.return_value = AgentPromptResponse(
+    mock_build.return_value = ClaudeAgentPromptResponse(
         output="Plan created", success=True, session_id="test"
     )
     mock_get_file.return_value = ("specs/plan.md", None)
-    mock_implement.return_value = AgentPromptResponse(
+    mock_implement.return_value = ClaudeAgentPromptResponse(
         output="Done", success=True, session_id="test"
     )
     # Mock insert_progress_comment to return success tuples
