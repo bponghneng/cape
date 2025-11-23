@@ -1,10 +1,10 @@
 # Find Plan File
 
-Based on the `Previous Step Output` below, follow the `Instructions` to find the path to the plan file that was just created.
+Based on the `Previous Step Output` below, follow the `Instructions` to find the path to the plan file.
 
 ## Instructions
 
-- The previous step created a plan file. Find the exact file path.
+- The previous step created or implemented a plan file. Find the exact file path of the plan.
 - You can use these approaches to find it:
   - Check git status for new untracked files
   - Use `git diff --stat origin/main...HEAD specs/` to see new files in specs directory compared to origin/main
