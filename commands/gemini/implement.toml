@@ -22,20 +22,16 @@ Follow the `Instructions` to implement the provided `Plan`, adhering to project 
 
 ## Output Format
 
-Output the results as a single JSON object in the following format:
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-```json
-{
-  "summary": "Concise summary of the implemented work",
-  "files_modified": [
-    "path/to/file1.ext",
-    "path/to/file2.ext"
-  ],
-  "path": "Relative path to the implemented plan file",
-  "git_diff_stat": "Output string from git diff --stat",
-  "status": "completed"
-}
-```
+{"summary": "Concise summary of the implemented work", "files_modified": ["path/to/file1.ext", "path/to/file2.ext"], "planPath": "Relative path to the implemented plan file", "git_diff_stat": "Output string from git diff --stat", "status": "completed"}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
+- Code fences (```)
+- Line breaks between the braces
+- Any text before or after the JSON
+- Markdown formatting
+- Explanations or commentary
 
 ## Plan
 
