@@ -89,7 +89,7 @@ Use exactly these two structures when producing the final output; do not include
 
 ### Logistics
 
-- Task ID(s): <Archon ID, ticket IDs>
+- Task ID(s): <ticket IDs>
 - Owner(s): <names/roles>
 - Links: <Task link(s) | PR(s) | Design Doc(s)/ADR(s)>
 - Type/Scope: <Feature | Bugfix | Codebase chore | Experiment | Documentation; key surfaces/components>
