@@ -6,14 +6,15 @@ Review a completed implementation against its plan and report whether the plan�
 
 ## Input
 
-- **Context**: Read `GEMINI.md` first. It contains critical information about the workspace structure (e.g., the `mexican-train/` subdirectory) and standard development commands.
-- **Plan**: Treat `{{args}}` as the **relative path** to a single plan file to validate. Read this file to understand the requirements.
-- **Scope**: You may read additional files in the repository to verify requirements.
-- **Safety**: This command is primarily **read-only** regarding code artifacts. Do not modify source code or configuration. However, you **SHOULD** run non-destructive validation commands (linters, tests, dry-run migrations) if they are part of the plan's validation steps.
+- Treat `$ARGUMENTS` as the **relative path** to a single plan file to validate (for example, `specs/chore-phinx-migrations-setup-plan.md`).
+- Use that path to read the plan content (the file is included at the end of this prompt).
+- You may read additional files in the repository as needed to verify whether requirements are satisfied.
+- This command is **read-only**: do not modify any files, configuration, or databases as part of acceptance; only inspect and report.
 
 ## Plan Structure to Expect
 
 Plans generally follow this structure:
+
 - `# <Plan Title>`
 - `## Task Context`
 - `## Description`
@@ -26,66 +27,79 @@ The exact section titles may vary slightly; treat headings starting with `##` as
 
 ## Deriving Requirements
 
-From the plan, derive a concrete list of requirements to check.
-- **Goal/Context**: High-level outcomes.
-- **Description**: Key functional additions.
-- **Files**: Expected file existence and roles.
-- **Implementation**: Specific steps taken.
-- **Validation**: Commands to run and their expected outputs.
+From the plan, derive a concrete list of requirements to check. At minimum:
+
+- From **Task Context / Goal / Constraints**:
+  - High-level outcome requirements (for example, “Support multiple environments”, “Use environment variables instead of hard-coded credentials”).
+- From **Description**:
+  - Key functional/structural requirements (for example, “Add Phinx as migration tool”, “Create migrations for users and auth_tokens tables”).
+- From **Relevant Files / New Files**:
+  - File-level expectations (files that should exist or be updated, and their intended roles).
+- From **Implementation Plan**:
+  - Each numbered step (and any important sub-bullets) becomes one or more concrete requirements (for example, “Add Phinx dev dependency to api/composer.json”, “Create api/phinx.php with development, e2e, testing environments configured from $_ENV”, “Add composer scripts migrate:dev, migrate:e2e, migrate:testing, etc.”).
+- From **Validation**:
+  - Each validation command plus its expected outcome is a requirement (for example, “Phinx CLI reports a version”, “Migrations run successfully and create specific tables/columns”).
+
+Group related requirements logically (for example, by section or phase), but ensure each requirement is specific enough to be checked in the codebase.
 
 ## Verification Approach
 
-1. **Determine Project Root**:
-   - Check `GEMINI.md` to confirm the project root (e.g., `mexican-train/`).
-   - Ensure all shell commands are executed from the correct directory where `docker-compose.yml` or `package.json` resides.
-   - **Crucial**: If `ls` shows a subdirectory like `mexican-train/`, you likely need to `cd` into it before running project commands.
+For each derived requirement:
 
-2. **Identify Evidence**:
-   - Map requirements to files or command outputs.
-
-3. **Execute Validation Commands**:
-   - **Mandatory**: If the plan lists validation commands (e.g., `docker compose exec ...`, `npm test`), you **must** attempt to run them to verify the requirement.
-   - **Context**: Ensure you are in the correct directory (see step 1).
-   - **Fallback**: If a command fails due to environment issues (e.g., Docker not running), mark the requirement as `unknown` and explicitly state the error in the `evidence` field. Do not guess.
-
-4. **Assign Status**:
-   - `met`: Confirmed via file inspection OR successful command execution.
-   - `not_met`: Evidence contradicts requirement OR command failed with logical error (e.g., test failure).
-   - `unknown`: Could not verify (e.g., missing environment, ambiguous requirement).
-
+1. **Identify evidence sources**
+   - Map the requirement to concrete files, configuration, or database/migration artifacts that should demonstrate it has been met.
+   - Use the `Relevant Files` and `New Files` sections as primary hints for where to look.
+2. **Inspect the repository**
+   - Open and inspect the relevant files (for example, `api/composer.json`, `api/phinx.php`, `api/db/migrations/*.php`, config files, specs).
+   - When the requirement refers to database structure, infer from migrations and configuration rather than live databases when possible.
+3. **Use validation commands cautiously**
+   - The plan’s `Validation` section may include commands (for example, `docker compose exec api composer migrate:dev`).
+   - You may run commands when safe and appropriate, but it is acceptable to infer status from code and configuration alone if running commands is not feasible.
+   - If you cannot reliably run a validation command, mark the requirement’s status as `unknown` and explain why in `evidence`.
+4. **Assign requirement status**
+   - `met` – clear evidence in the repository (and/or successful validation commands) shows the requirement is satisfied.
+   - `not_met` – clear evidence that the requirement was not satisfied (for example, missing file, missing script, wrong configuration, or validation clearly not implemented).
+   - `unknown` – not enough evidence to decide (for example, external system needed, command cannot run, or ambiguity in the plan).
 5. **Determine blocking vs non-blocking**
    - Consider requirements derived from **Goals**, **Constraints**, and **Validation** as blocking by default.
    - Minor notes or optional future considerations may be treated as non-blocking.
 
-## Output (JSON Only)
+## Overall Plan Status
 
-Your **entire** output must be a single valid JSON object.
+After checking all requirements:
 
-```json
-{
-  "plan_title": "Plan Title",
-  "status": "pass",
-  "summary": "Brief summary of findings.",
-  "requirements": [
-    {
-      "id": "req-1",
-      "section": "Section Name",
-      "description": "Requirement description.",
-      "status": "met",
-      "blocking": true,
-      "evidence": "Command 'composer test' passed."
-    }
-  ],
-  "unmet_blocking_requirements": [],
-  "notes": []
-}
-```
+- Set the overall `status` to:
+  - `pass` – all blocking requirements are `met`, and there are no clearly violated constraints.
+  - `fail` – one or more blocking requirements are `not_met`.
+  - `partial` – no blocking requirements are clearly `not_met`, but some blocking requirements are `unknown` or there is significant ambiguity.
 
-- `status`: `pass` (all blocking met), `fail` (any blocking not_met), `partial` (blocking requirements unknown).
+Explain your reasoning briefly in the `summary` field of the JSON output.
+
+## Output Format
+
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation.
+
+{"plan_title":"<string>","status":"pass|fail|partial","summary":"<string>","requirements":[{"id":"<string>","section":"<string>","description":"<string>","status":"met|not_met|unknown","blocking":true,"evidence":"<string>"}],"unmet_blocking_requirements":["<id>", "..."],"notes":["<string>"]}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include code fences, surrounding text, blank lines, or explanations before/after the object.
+
+- `plan_title`: Title from the plan’s top-level heading.
+- `status`: `pass`, `fail`, or `partial` as defined above.
+- `requirements`: One entry per derived requirement, with:
+  - `id`: Stable identifier (section + step is typical).
+  - `section`: Source section of the plan.
+  - `description`: Short restatement in your own words.
+  - `status`: `met`, `not_met`, or `unknown`.
+  - `blocking`: `true` if unmet/unknown should affect overall status, else `false`.
+  - `evidence`: Brief justification.
+- `unmet_blocking_requirements`: List of `id` values for blocking requirements that are `not_met`.
+- `notes`: Optional additional context for humans or follow-up work.
+
+If you cannot parse the plan or cannot reasonably assess its requirements, respond with the same JSON shape but set `"status":"fail"`, explain why in `summary`, and provide whatever requirement info you can (empty array allowed).
 
 ## Plan to Validate
 
-- Plan file path: `{{args}}`
+- Plan file path: `$ARGUMENTS`
 - Plan file content:
 
 {{args}}
