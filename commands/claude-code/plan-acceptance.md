@@ -77,69 +77,27 @@ After checking all requirements:
 
 Explain your reasoning briefly in the `summary` field of the JSON output.
 
-## Output (JSON Only)
+## Output Format
 
-This command runs in a noninteractive mode. Your **entire** output must be a single valid JSON object with **no additional text** before or after it.
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation.
 
-Use this shape (you may add fields, but do not remove or rename these keys):
+{"plan_title":"<string>","status":"pass|fail|partial","summary":"<string>","requirements":[{"id":"<string>","section":"<string>","description":"<string>","status":"met|not_met|unknown","blocking":true,"evidence":"<string>"}],"unmet_blocking_requirements":["<id>", "..."],"notes":["<string>"]}
 
-```json
-{
-  "plan_title": "Chore Plan: Phinx Migrations Setup",
-  "status": "pass",
-  "summary": "All blocking requirements from the Phinx migrations setup plan are implemented and validated.",
-  "requirements": [
-    {
-      "id": "task-context-goal-1",
-      "section": "Task Context / Goal",
-      "description": "Introduce Phinx as the migration system for the API to support multiple database environments.",
-      "status": "met",
-      "blocking": true,
-      "evidence": "api/composer.json includes robmorgan/phinx in require-dev and api/phinx.php defines development, e2e, and testing environments driven by $_ENV."
-    },
-    {
-      "id": "impl-phase-1-step-1",
-      "section": "Implementation Plan / Phase 1",
-      "description": "Add Phinx as a dev dependency in api/composer.json and install it.",
-      "status": "met",
-      "blocking": true,
-      "evidence": "composer.json updated; Phinx CLI available or configuration present."
-    },
-    {
-      "id": "validation-step-3",
-      "section": "Validation",
-      "description": "Run composer migrate:dev to create users and auth_tokens tables in mexicantrain_dev.",
-      "status": "unknown",
-      "blocking": true,
-      "evidence": "Migrations and scripts appear correctly configured, but validation command was not executed in this environment."
-    }
-  ],
-  "unmet_blocking_requirements": [
-    "impl-phase-2-step-4"
-  ],
-  "notes": [
-    "Some validation commands could not be executed; requirements tied to those commands are marked as unknown."
-  ]
-}
-```
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include code fences, surrounding text, blank lines, or explanations before/after the object.
 
 - `plan_title`: Title from the plan’s top-level heading.
 - `status`: `pass`, `fail`, or `partial` as defined above.
 - `requirements`: One entry per derived requirement, with:
-  - `id`: A stable identifier (for example, based on section and step number).
-  - `section`: The section of the plan the requirement came from.
-  - `description`: Short restatement of the requirement in your own words.
+  - `id`: Stable identifier (section + step is typical).
+  - `section`: Source section of the plan.
+  - `description`: Short restatement in your own words.
   - `status`: `met`, `not_met`, or `unknown`.
-  - `blocking`: `true` if failure/unknown should affect overall status, otherwise `false`.
-  - `evidence`: Brief explanation of how you reached the status.
+  - `blocking`: `true` if unmet/unknown should affect overall status, else `false`.
+  - `evidence`: Brief justification.
 - `unmet_blocking_requirements`: List of `id` values for blocking requirements that are `not_met`.
 - `notes`: Optional additional context for humans or follow-up work.
 
-If you cannot parse the plan or cannot reasonably assess its requirements, set:
-
-- `status`: `"fail"`
-- `summary`: Explain why acceptance could not be performed.
-- `requirements`: An empty array or partial list with appropriate `unknown` statuses.
+If you cannot parse the plan or cannot reasonably assess its requirements, respond with the same JSON shape but set `"status":"fail"`, explain why in `summary`, and provide whatever requirement info you can (empty array allowed).
 
 ## Plan to Validate
 
