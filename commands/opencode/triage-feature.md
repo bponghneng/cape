@@ -104,17 +104,18 @@ Explain how to validate that the feature works as intended and that there are no
 
 For small-change features, keep the overall plan concise: fill in `Task Context`, `Description`, a brief `User Story` (if applicable), `Problem & Solution Overview`, `Relevant Files`, a short `Implementation Plan`, and minimal `Testing & Validation` / `Acceptance Criteria`. Use `Notes / Future Considerations` only when it clearly adds value.
 
-## Report
+## Output Format
 
-Summarize the work you've done using the following JSON format:
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-```json
-{
-  "feature": "<feature name>",
-  "plan": "<plan file path>",
-  "summary": "<concise summary of the work you've done>"
-}
-```
+{"feature":"<feature name>","output":"plan","plan":"<plan file path>","summary":"<concise summary of the work you've done>"}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
+- Code fences (```)
+- Line breaks between the braces
+- Any text before or after the JSON
+- Markdown formatting
+- Explanations or commentary
 
 ## Feature
 

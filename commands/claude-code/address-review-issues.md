@@ -57,46 +57,24 @@ For each issue:
    - When practical, run targeted validation appropriate to the area you touched (for example, PHP static analysis or tests for `api/`, or frontend tests for `app-old/`).
    - At minimum, re-read the changed code/spec to ensure it is internally consistent and does not obviously break existing behavior.
 
-## Report
+## Output Format
 
-After processing all issues, produce a concise, machine-readable summary of what you did.
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation.
 
-- Your entire output must be a single valid JSON object with no additional text before or after it.
-- Use this shape (fields may be extended but not removed):
+{"issues":[{"file":"<string>","lines":"<string>","type":"<string>","status":"fixed|skipped|needs_followup","notes":"<string>"}],"output":"address review issues","summary":"<string>"}
 
-```json
-{
-  "summary": "Processed automated review issues and applied small, targeted fixes where safe.",
-  "issues": [
-    {
-      "file": "specs/api/magic-link-jwt-auth.md",
-      "lines": "236-239",
-      "type": "potential_issue",
-      "status": "fixed",
-      "notes": "Unified error response for missing vs expired magic-link tokens."
-    },
-    {
-      "file": "api/phinx.php",
-      "lines": "18-26",
-      "type": "potential_issue",
-      "status": "fixed",
-      "notes": "Added validation for required DB_* environment variables."
-    },
-    {
-      "file": "specs/api/magic-link-jwt-auth.md",
-      "lines": "196-221",
-      "type": "potential_issue",
-      "status": "needs_followup",
-      "notes": "Requires broader design/spec decisions; created or recommended a plan in specs/."
-    }
-  ]
-}
-```
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include code fences, surrounding text, blank lines, or explanations before/after the object.
 
-- `status` must be one of:
-  - `fixed` – issue addressed via code/spec change.
-  - `skipped` – intentionally not changed (explain why).
-  - `needs_followup` – requires a separate plan or human decision.
+- `summary`: Concise summary of actions taken (e.g., "Processed automated review issues and applied small, targeted fixes where safe.").
+- `issues`: List of processed issues, where each entry contains:
+  - `file`: Referenced file path.
+  - `lines`: Referenced line range.
+  - `type`: Issue type from report.
+  - `status`: One of:
+    - `fixed` – issue addressed via code/spec change.
+    - `skipped` – intentionally not changed (explain why in notes).
+    - `needs_followup` – requires a separate plan or human decision.
+  - `notes`: Brief explanation of the action or decision.
 
 ## Automated Review Report
 

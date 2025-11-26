@@ -79,7 +79,7 @@ Explain your reasoning briefly in the `summary` field of the JSON output.
 
 Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation.
 
-{"plan_title":"<string>","status":"pass|fail|partial","summary":"<string>","requirements":[{"id":"<string>","section":"<string>","description":"<string>","status":"met|not_met|unknown","blocking":true,"evidence":"<string>"}],"unmet_blocking_requirements":["<id>", "..."],"notes":["<string>"]}
+{"output":"plan acceptance","notes":["<string>"],"plan_title":"<string>","requirements":[{"id":"<string>","section":"<string>","description":"<string>","status":"met|not_met|unknown","blocking":true,"evidence":"<string>"}],"status":"pass|fail|partial","summary":"<string>","unmet_blocking_requirements":["<id>", "..."]}
 
 **CRITICAL:** Your entire response must be this single line of valid JSON. Do not include code fences, surrounding text, blank lines, or explanations before/after the object.
 

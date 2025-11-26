@@ -78,17 +78,18 @@ Explain how to validate that the chore is complete and has no obvious regression
 
 For small-change chores, keep the overall plan concise: fill in `Task Context`, `Description`, `Relevant Files`, a short `Implementation Plan`, and minimal `Validation`. Use `Notes / Future Considerations` only when it clearly adds value.
 
-## Report
+## Output Format
 
-Summarize the work you've done using the following JSON format:
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-```json
-{
-  "chore": "<chore name>",
-  "plan": "<plan file path>",
-  "summary": "<concise summary of the work you've done>"
-}
-```
+{"chore":"<chore name>","output":"plan","plan":"<plan file path>","summary":"<concise summary of the work you've done>"}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
+- Code fences (```)
+- Line breaks between the braces
+- Any text before or after the JSON
+- Markdown formatting
+- Explanations or commentary
 
 ## Chore
 

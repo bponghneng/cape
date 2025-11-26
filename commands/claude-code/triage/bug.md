@@ -89,17 +89,18 @@ Explain how to validate that the bug is fixed and that there are no obvious regr
 
 For small-change bugs, keep the overall plan concise: fill in `Task Context`, `Bug Description`, `Steps to Reproduce`, `Root Cause Hypothesis`, `Relevant Files`, a short `Implementation Plan`, and minimal `Validation`. Use `Notes / Future Considerations` only when it clearly adds value.
 
-## Report
+## Output Format
 
-Summarize the work you've done using the following JSON format:
+Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-```json
-{
-  "bug": "<bug name>",
-  "plan": "<plan file path>",
-  "summary": "<concise summary of the work you've done>"
-}
-```
+{"bug":"<bug name>","output":"plan","plan":"<plan file path>","summary":"<concise summary of the work you've done>"}
+
+**CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
+- Code fences (```)
+- Line breaks between the braces
+- Any text before or after the JSON
+- Markdown formatting
+- Explanations or commentary
 
 ## Bug
 

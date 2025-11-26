@@ -24,7 +24,7 @@ Follow the `Instructions` to implement the provided `Plan`, adhering to project 
 
 Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-{"summary": "Concise summary of the implemented work", "files_modified": ["path/to/file1.ext", "path/to/file2.ext"], "planPath": "Relative path to the implemented plan file", "git_diff_stat": "Output string from git diff --stat", "status": "completed"}
+{"files_modified":["path/to/file1.ext","path/to/file2.ext"],"git_diff_stat":"Output string from git diff --stat","output":"implement","planPath":"Relative path to the implemented plan file","status":"completed","summary": "Concise summary of the implemented work"}
 
 **CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
 - Code fences (```)
