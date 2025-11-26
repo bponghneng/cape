@@ -98,7 +98,7 @@ Based on the `Work Item` below, read the `Instructions` to classify the issue by
 
 Return ONLY valid JSON with zero additional text, formatting, markdown, or explanation:
 
-{"type": "bug|chore|feature", "level": "simple|average|complex|critical"}
+{"level":"simple|average|complex|critical","output": "classify","type":"bug|chore|feature"}
 
 **CRITICAL:** Your entire response must be this single line of valid JSON. Do not include:
 - Code fences (```)
