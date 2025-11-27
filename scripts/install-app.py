@@ -64,10 +64,40 @@ def ensure_parent_writable(target_path: Path) -> None:
         raise typer.Exit(code=1)
 
 
-def remove_existing_target(target_path: Path, force: bool) -> None:
+def backup_env_file(target_path: Path) -> Path | None:
+    """Move an existing .env file outside the install dir so it can be restored."""
+    env_path = target_path / ".env"
+    if not env_path.exists():
+        return None
+
+    backup_dir = target_path.parent
+    backup_name = ".env.cape-install-backup"
+    backup_path = backup_dir / backup_name
+    counter = 1
+    while backup_path.exists():
+        backup_path = backup_dir / f"{backup_name}.{counter}"
+        counter += 1
+
+    shutil.move(env_path, backup_path)
+    console.print(f"[cyan]Preserving existing .env -> {backup_path}[/cyan]")
+    return backup_path
+
+
+def restore_env_file(target_path: Path, backup_path: Path | None) -> None:
+    """Restore the preserved .env file back into the install directory."""
+    if backup_path is None:
+        return
+
+    destination = target_path / ".env"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(backup_path, destination)
+    console.print(f"[green]\u2713 Restored .env to {destination}[/green]")
+
+
+def remove_existing_target(target_path: Path, force: bool) -> Path | None:
     """Delete the existing destination directory after confirmation."""
     if not target_path.exists():
-        return
+        return None
 
     if not target_path.is_dir():
         console.print(
@@ -86,12 +116,15 @@ def remove_existing_target(target_path: Path, force: bool) -> None:
 
     console.print(f"[yellow]Removing existing directory: {target_path}[/yellow]")
 
+    backup_path = backup_env_file(target_path)
+
     def _on_rm_error(func, path, exc_info):
         # Clear read-only flag (Windows) then retry removal
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
     shutil.rmtree(target_path, onerror=_on_rm_error)
+    return backup_path
 
 
 def copy_app(source_path: Path, target_path: Path) -> None:
@@ -131,8 +164,9 @@ def main(
     console.print("=" * 30)
 
     ensure_parent_writable(target_path)
-    remove_existing_target(target_path, force)
+    env_backup = remove_existing_target(target_path, force)
     copy_app(source_path, target_path)
+    restore_env_file(target_path, env_backup)
 
 
 if __name__ == "__main__":
