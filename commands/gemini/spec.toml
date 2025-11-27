@@ -1,0 +1,99 @@
+description = "Generate a specification document for a software engineering issue based on user input"
+prompt = """
+# Specification Document
+
+Create a specification document for the software engineering issue described below.
+
+**Issue Description:**
+{{args}}
+
+## Instructions
+
+1. **Analyze the Issue**: Read the issue description provided above.
+2. **Classify the Issue**: Determine if the issue is a **Bug**, **Chore**, or **Feature** based on the `Issue Type Guidelines` below.
+3. **Contextualize**: Read @GEMINI.md and @README.md for workspace layout, key repos/directories, dependencies, and workflow guidelines, then carry forward only the details relevant to this issue.
+4. **Evaluate Clarity**: If the issue description lacks critical intent, scope, dependencies, expected outcomes, or testing direction, note up to three clarification questions you would ask the requester.
+5. **Generate Spec**: Produce a SINGLE Markdown document using the `Template` below.
+   - **Title**: Use a clear, descriptive title prefixed with the issue type (e.g., "Bug: Fix login crash", "Feature: Add dark mode").
+   - **Intent**: A one-liner capturing the essence.
+   - **Value**: Why this is important for the user or business.
+   - **Signals of success**: Concise, observable outcomes (e.g., reproducible bug no longer occurs, new capability available to role X).
+   - **Implementation Plan**: Outline constraints, unknowns, and scope. Capture scope summaries from the issue description and note dependencies, architectural patterns, or testing strategies when they matter; omit these sections only if nothing relevant exists.
+   - **Length**: Keep the entire document under 1,500 words.
+   - **Needs Input Section**: If step 4 produced questions, include a `## Needs Input` section at the top of the output with those questions; omit the section when no clarifications are needed.
+6. **Output**: Return ONLY the completed Markdown document. Do not include commentary or the raw template.
+
+## Issue Type Guidelines
+
+**Bug**: Issues that fix unintended behavior, errors, or broken functionality
+- System crashes, errors, or exceptions
+- Incorrect output or behavior vs. expected behavior
+- Performance regressions or memory leaks
+- Security vulnerabilities
+- Broken user interface elements
+- Data corruption or loss issues
+
+**Feature**: Issues that add new functionality, capabilities, or user-facing features
+- New user-facing features or capabilities
+- New APIs or endpoints
+- New integrations with external systems
+- New data types or entities
+- New user interface components
+- New business logic or workflows
+
+**Chore**: Issues related to maintenance, refactoring, tooling, or non-functional improvements
+- Code refactoring or cleanup
+- Dependency updates or migrations
+- Documentation improvements
+- Build system or CI/CD improvements
+- Testing infrastructure enhancements
+- Performance optimizations (non-regression)
+- Code style or formatting changes
+
+## Template
+
+```markdown
+# <Issue Type>: <Title>
+
+## Needs Input (Optional)
+
+- NEEDS INPUT: <Critical clarification question>
+- NEEDS INPUT: <Critical clarification question>
+
+## What and Why
+
+### Intent (one-liner)
+
+- <One sentence capturing the essence of the work>
+
+### Value (why)
+
+- <User/business value #1>
+- <User/business value #2>
+
+### Signals of success
+
+- <Observable outcome or acceptance test #1>
+- <Observable outcome or acceptance test #2>
+
+## How: Implementation Plan
+
+### Constraints & principles
+
+- <Guardrails, org principles, and boundaries to respect>
+
+### Unknowns & assumptions
+
+- NEEDS CLARIFICATION: <question or ambiguity>
+- ASSUMPTION: <description of assumption>
+
+### Scope (in/out) (Optional)
+
+- In: <Key scope items or intent captured in the issue description>
+- Out: <Key exclusions>
+
+### Notes & links (Optional)
+
+- <Dependencies, architectural patterns, or testing strategies plus relevant links>
+```
+"""
