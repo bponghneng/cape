@@ -9,6 +9,8 @@ Create a specification document for the software engineering issue described bel
 
 ## Instructions
 
+**CRITICAL**: You are PLANNING ONLY, not implementing.
+
 1. **Analyze the Issue**: Read the issue description provided above.
 2. **Classify the Issue**: Determine if the issue is a **Bug**, **Chore**, or **Feature** based on the `Issue Type Guidelines` below.
 3. **Contextualize**: Read @GEMINI.md and @README.md for workspace layout, key repos/directories, dependencies, and workflow guidelines, then carry forward only the details relevant to this issue.
@@ -22,6 +24,8 @@ Create a specification document for the software engineering issue described bel
    - **Length**: Keep the entire document under 1,500 words.
    - **Needs Input Section**: If step 4 produced questions, include a `## Needs Input` section at the top of the output with those questions; omit the section when no clarifications are needed.
 6. **Output**: Return ONLY the completed Markdown document. Do not include commentary or the raw template.
+7. When the plan has no NEEDS INPUT items, save it to `specs/*.md`.
+8. DO NOT launch on implementation workflows.
 
 ## Issue Type Guidelines
 
