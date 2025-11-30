@@ -1,5 +1,6 @@
-description = "Generate a specification document for a software engineering issue based on user input"
-prompt = """
+---
+description: "Generate a specification document for a software engineering issue based on user input"
+---
 # Specification Document
 
 Create a specification document for the software engineering issue described below.
@@ -10,7 +11,7 @@ Create a specification document for the software engineering issue described bel
 
 1. **Analyze the Issue**: Read the `Issue Description` provided below.
 2. **Classify the Issue**: Determine if the issue is a **Bug**, **Chore**, or **Feature** based on the `Issue Type Guidelines` below.
-3. **Contextualize**: Read @GEMINI.md and @README.md for workspace layout, key repos/directories, dependencies, and workflow guidelines, then carry forward only the details relevant to this issue.
+3. **Contextualize**: Read @AGENTS.md and @README.md for workspace layout, key repos/directories, dependencies, and workflow guidelines, then carry forward only the details relevant to this issue.
 4. **Evaluate Clarity**: If the issue description lacks critical intent, scope, dependencies, expected outcomes, or testing direction, note up to three clarification questions you would ask the requester.
 5. **Generate Spec**: Produce a SINGLE Markdown document using the `Template` below.
    - **Title**: Use a clear, descriptive title prefixed with the issue type (e.g., "Bug: Fix login crash", "Feature: Add dark mode").
@@ -100,5 +101,4 @@ Create a specification document for the software engineering issue described bel
 
 ## Issue Description
 
-{{args}}
-"""
+$ARGUMENTS
